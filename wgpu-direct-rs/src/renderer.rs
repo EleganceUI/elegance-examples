@@ -1,9 +1,7 @@
 // The cube resolves directly into a bridge-owned shared GPU image.
 
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc};
-
-use std::thread::{self};
+use std::sync::mpsc;
+use std::thread;
 use std::time::{Duration, Instant};
 
 use elegance::{Error, ErrorKind, ExternalGpuImage};
@@ -47,14 +45,10 @@ impl CubeRenderer {
         .map_err(|error| Error::new(ErrorKind::Gpu, error.to_string()))?;
 
         let image = bridge.image().clone();
-        let running = Arc::new(AtomicBool::new(true));
         let (input, inputs) = mpsc::channel();
-        thread::spawn({
-            let running = running.clone();
-            move || {
-                if let Err(error) = run(bridge, size, speed, inputs, &running) {
-                    eprintln!("wgpu-direct: {error}");
-                }
+        thread::spawn(move || {
+            if let Err(error) = run(bridge, size, speed, inputs) {
+                eprintln!("wgpu-direct: {error}");
             }
         });
 
@@ -89,7 +83,6 @@ fn run(
     size: u32,
     speed: f32,
     inputs: mpsc::Receiver<Input>,
-    running: &AtomicBool,
 ) -> Result<(), String> {
     let gpu = Gpu::new(bridge.device().clone(), size, size);
     let mut pose = Pose {
@@ -102,38 +95,38 @@ fn run(
     let mut last = Instant::now();
     let mut progress = last;
 
-    let result = {
-        while running.load(Ordering::Acquire) {
-            let now = Instant::now();
-            if now.duration_since(progress) >= Duration::from_secs(10) {
-                return Err("no GPU frame could be published for 10 seconds".to_string());
+    let result = 'render: loop {
+        loop {
+            match inputs.try_recv() {
+                Ok(input) => pose.apply(input),
+                Err(mpsc::TryRecvError::Empty) => break,
+                // The mounted UI owns the senders; dropping it stops the producer.
+                Err(mpsc::TryRecvError::Disconnected) => break 'render Ok(()),
             }
-            for input in inputs.try_iter() {
-                pose.apply(input);
-            }
-            if !pose.held {
-                let turn = pose.speed * (now - last).as_secs_f32();
-                pose.yaw += turn;
-                pose.pitch += turn * 0.7;
-            }
-
-            last = now;
-            match gpu.draw(&mut bridge, &pose) {
-                Ok(()) => progress = Instant::now(),
-                // Backpressure or the UI renderer's device is not ready yet.
-                Err(BridgeError::Busy | BridgeError::Publish(2)) => {}
-                Err(error) => return Err(format!("cube publication failed: {error}")),
-            }
-
-            thread::sleep(
-                (now + Duration::from_micros(16_667)).saturating_duration_since(Instant::now()),
-            );
         }
 
-        Ok(())
-    };
+        let now = Instant::now();
+        if now.duration_since(progress) >= Duration::from_secs(10) {
+            break Err("no GPU frame could be published for 10 seconds".to_string());
+        }
+        if !pose.held {
+            let turn = pose.speed * (now - last).as_secs_f32();
+            pose.yaw += turn;
+            pose.pitch += turn * 0.7;
+        }
 
-    bridge.clear();
+        last = now;
+        match gpu.draw(&mut bridge, &pose) {
+            Ok(()) => progress = Instant::now(),
+            // Backpressure or the UI renderer's device is not ready yet.
+            Err(BridgeError::Busy | BridgeError::Publish(2)) => {}
+            Err(error) => break Err(format!("cube publication failed: {error}")),
+        }
+
+        thread::sleep(
+            (now + Duration::from_micros(16_667)).saturating_duration_since(Instant::now()),
+        );
+    };
     result
 }
 
@@ -142,7 +135,7 @@ struct Gpu {
     vertices: wgpu::Buffer,
     uniforms: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
-    samples: wgpu::TextureView, // drawn multisampled, resolved into the image's buffer
+    samples: wgpu::TextureView,
     depth: wgpu::TextureView,
 }
 
