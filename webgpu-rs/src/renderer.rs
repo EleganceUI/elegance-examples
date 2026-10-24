@@ -7,7 +7,8 @@
 
 use std::future::Future;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Receiver, Sender};
+use std::sync::{mpsc, Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
@@ -21,9 +22,20 @@ use windows::Win32::Graphics::Direct3D12::{ID3D12Fence, ID3D12Resource};
 const SAMPLES: u32 = 4;
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth24Plus;
 
+/// What the window's events do to the cube, sent to its thread.
+pub enum Input {
+    /// The pointer went down on the cube (true), or let go (false). It stops spinning while held.
+    Grab(bool),
+    /// Turn it by a drag, in points.
+    Drag { dx: f32, dy: f32 },
+    /// Move it closer (above 1) or farther (below 1).
+    Zoom(f32),
+}
+
 /// Draws the cube into `image` until stopped or dropped.
 pub struct CubeRenderer {
     speed: Arc<AtomicU32>, // degrees per second, as f32 bits
+    input: Sender<Input>,
     running: Arc<AtomicBool>,
     thread: Mutex<Option<JoinHandle<()>>>,
 }
@@ -32,16 +44,18 @@ impl CubeRenderer {
     pub fn new(image: GpuImage, speed: f32) -> Self {
         let speed = Arc::new(AtomicU32::new(speed.to_bits()));
         let running = Arc::new(AtomicBool::new(true));
+        let (input, inputs) = mpsc::channel();
         let thread = std::thread::spawn({
             let (speed, running) = (speed.clone(), running.clone());
             move || {
-                if let Err(message) = run(&image, &speed, &running) {
+                if let Err(message) = run(&image, &speed, &inputs, &running) {
                     eprintln!("webgpu: {message}");
                 }
             }
         });
         Self {
             speed,
+            input,
             running,
             thread: Mutex::new(Some(thread)),
         }
@@ -50,6 +64,11 @@ impl CubeRenderer {
     /// Degrees per second.
     pub fn set_speed(&self, speed: f32) {
         self.speed.store(speed.to_bits(), Ordering::Relaxed);
+    }
+
+    /// Where to send the window's events (from any thread).
+    pub fn input(&self) -> Sender<Input> {
+        self.input.clone()
     }
 
     /// Stops drawing, once the thread has finished its frame.
@@ -73,7 +92,28 @@ struct Target {
     texture: wgpu::Texture,
 }
 
-fn run(image: &GpuImage, speed: &AtomicU32, running: &AtomicBool) -> Result<(), String> {
+// Where the cube is turned to, and how far away it is.
+struct Pose {
+    yaw: f32,   // degrees
+    pitch: f32, // degrees
+    distance: f32,
+    held: bool,
+}
+
+impl Pose {
+    fn apply(&mut self, input: Input) {
+        match input {
+            Input::Grab(held) => self.held = held,
+            Input::Drag { dx, dy } => {
+                self.yaw += dx * 0.5;
+                self.pitch += dy * 0.5;
+            }
+            Input::Zoom(factor) => self.distance = (self.distance / factor).clamp(3.5, 15.0),
+        }
+    }
+}
+
+fn run(image: &GpuImage, speed: &AtomicU32, inputs: &Receiver<Input>, running: &AtomicBool) -> Result<(), String> {
     // Nothing until a window has drawn: the image is made on the renderer's GPU, and the first
     // frame says which one.
     let first = loop {
@@ -89,12 +129,24 @@ fn run(image: &GpuImage, speed: &AtomicU32, running: &AtomicBool) -> Result<(), 
     let fence = gpu.open_fence(&first)?;
     let mut targets: Vec<Option<Target>> = (0..GpuImage::BUFFERS).map(|_| None).collect();
 
-    let mut angle = 0.0f32;
+    let mut pose = Pose {
+        yaw: 0.0,
+        pitch: 0.0,
+        distance: 6.0,
+        held: false,
+    };
     let mut last = Instant::now();
     let mut next = Some(first);
     while running.load(Ordering::Relaxed) {
         let now = Instant::now();
-        angle += f32::from_bits(speed.load(Ordering::Relaxed)) * (now - last).as_secs_f32();
+        while let Ok(input) = inputs.try_recv() {
+            pose.apply(input);
+        }
+        if !pose.held {
+            let turn = f32::from_bits(speed.load(Ordering::Relaxed)) * (now - last).as_secs_f32();
+            pose.yaw += turn;
+            pose.pitch += turn * 0.7;
+        }
         last = now;
 
         let Some(frame) = next.take().or_else(|| image.begin_frame()) else {
@@ -105,7 +157,7 @@ fn run(image: &GpuImage, speed: &AtomicU32, running: &AtomicBool) -> Result<(), 
             Some(target) => target,
             slot => slot.insert(gpu.import(&frame)?),
         };
-        gpu.draw(target, angle, &fence, frame.fence_value);
+        gpu.draw(target, &pose, &fence, frame.fence_value);
         image.end_frame(&frame, GpuImageSync::Fence);
 
         std::thread::sleep((now + Duration::from_micros(16_667)).saturating_duration_since(Instant::now()));
@@ -316,13 +368,13 @@ impl Gpu {
         })
     }
 
-    fn draw(&self, target: &Target, angle: f32, fence: &ID3D12Fence, fence_value: u64) {
+    fn draw(&self, target: &Target, pose: &Pose, fence: &ID3D12Fence, fence_value: u64) {
         let aspect = target.texture.width() as f32 / target.texture.height() as f32;
         let transform = mul(
             perspective(aspect),
             mul(
-                translation(0.0, 0.0, -6.0),
-                mul(rotation_x(angle * 0.7), rotation_y(angle)),
+                translation(0.0, 0.0, -pose.distance),
+                mul(rotation_x(pose.pitch), rotation_y(pose.yaw)),
             ),
         );
         self.queue.write_buffer(&self.uniforms, 0, as_bytes(&transform));
