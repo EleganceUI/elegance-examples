@@ -1,0 +1,11 @@
+# preview: Previews: #[preview] functions shown and reloaded by `cargo elegance preview`.
+# A complete project: copy this folder to start an app (see the README one folder up).
+
+[package]
+name = "preview"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+elegance = { git = "https://github.com/EleganceUI/elegance-rs" }

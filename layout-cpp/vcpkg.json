@@ -1,0 +1,20 @@
+{
+  "name": "layout",
+  "version": "0.1.0",
+  "builtin-baseline": "2750401336fb7c95f6619657a46a7e798661341c",
+  "dependencies": [
+    "dawn",
+    "freetype",
+    "harfbuzz",
+    "miniaudio",
+    {
+      "name": "msdfgen",
+      "default-features": false
+    },
+    {
+      "name": "stb",
+      "platform": "!windows & !osx"
+    },
+    "sdl3"
+  ]
+}

@@ -1,29 +1,45 @@
-cmake_minimum_required(VERSION 3.28)
-project(HelloElegence LANGUAGES CXX)
+# hello: A starter app: a root component and a component with a prop and state.
+# A complete project: copy this folder to start an app (see the README one folder up).
+
+cmake_minimum_required(VERSION 4.3)
+project(hello LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# The app and elegence.dll (with its dependencies) share one folder, so Windows finds the DLLs.
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+# Elegance: ELEGANCE_DIR if set, else a checkout beside elegance-examples, else downloaded from
+# GitHub. (elegance-examples' root project adds it once for every example.)
+if (NOT TARGET Elegance::Elegance)
+    # The app beside elegance.dll and its dependencies, so Windows finds them.
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    set(ELEGANCE_DIR "" CACHE PATH "Elegance's source (empty: ../../elegance if it's there, else download it)")
+    if (NOT ELEGANCE_DIR AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../elegance/CMakeLists.txt")
+        set(ELEGANCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../elegance")
+    endif ()
+    if (ELEGANCE_DIR)
+        add_subdirectory("${ELEGANCE_DIR}" elegance)
+    else ()
+        include(FetchContent)
+        FetchContent_Declare(elegance
+                GIT_REPOSITORY https://github.com/EleganceUI/elegance.git
+                GIT_TAG main
+                GIT_SHALLOW ON)
+        FetchContent_MakeAvailable(elegance)
+    endif ()
+endif ()
 
-# Elegence is built as part of this project (it has no installed package yet).
-set(ELEGENCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../ElegenceMain" CACHE PATH "The Elegence source tree")
-add_subdirectory(${ELEGENCE_DIR} elegence)
-
-add_executable(hello-elegence
+add_executable(hello
         src/main.cpp
         src/root.cpp
         src/components/hello_world.cpp
 )
-target_include_directories(hello-elegence PRIVATE src)
-target_link_libraries(hello-elegence PRIVATE Elegence::Elegence)
+target_include_directories(hello PRIVATE src)
+target_link_libraries(hello PRIVATE Elegance::Elegance)
 
 if (MSVC)
-    target_compile_options(hello-elegence PRIVATE /W4 /permissive- /utf-8)
+    target_compile_options(hello PRIVATE /W4 /permissive- /utf-8)
 else ()
-    target_compile_options(hello-elegence PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(hello PRIVATE -Wall -Wextra -Wpedantic)
 endif ()

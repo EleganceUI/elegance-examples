@@ -1,6 +1,6 @@
 #include "components/hello_world.h"
 
-#include <elg/elegence.h>
+#include <elg/elegance.h>
 
 #include <format>
 

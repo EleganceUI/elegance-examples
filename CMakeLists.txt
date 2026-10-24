@@ -1,43 +1,57 @@
-# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
-# If a copy of the MPL was not distributed with this file, You can obtain one at
-# https://mozilla.org/MPL/2.0/.
+# Every C++ example in one build, sharing one Elegance. Each <name>-cpp folder is also a complete
+# project on its own.
 
-# Small, self-contained examples, one folder each. The documentation (docs/) shows their
-# sources, so they're kept short and use only the public API.
+cmake_minimum_required(VERSION 4.3)
+project(elegance_examples LANGUAGES CXX)
 
-function(elg_example name)
-    add_executable(example_${name} ${name}/main.cpp)
-    target_link_libraries(example_${name} PRIVATE Elegence::Elegence)
-    set_target_properties(example_${name} PROPERTIES OUTPUT_NAME ${name} FOLDER examples)
-    if (MSVC)
-        target_compile_options(example_${name} PRIVATE /W4 /permissive- /utf-8)
-    else ()
-        target_compile_options(example_${name} PRIVATE -Wall -Wextra -Wpedantic)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Elegance: ELEGANCE_DIR if set, else a checkout beside elegance-examples, else downloaded from
+# GitHub.
+if (NOT TARGET Elegance::Elegance)
+    # The app beside elegance.dll and its dependencies, so Windows finds them.
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    set(ELEGANCE_DIR "" CACHE PATH "Elegance's source (empty: ../elegance if it's there, else download it)")
+    if (NOT ELEGANCE_DIR AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../elegance/CMakeLists.txt")
+        set(ELEGANCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../elegance")
     endif ()
-endfunction()
+    if (ELEGANCE_DIR)
+        add_subdirectory("${ELEGANCE_DIR}" elegance)
+    else ()
+        include(FetchContent)
+        FetchContent_Declare(elegance
+                GIT_REPOSITORY https://github.com/EleganceUI/elegance.git
+                GIT_TAG main
+                GIT_SHALLOW ON)
+        FetchContent_MakeAvailable(elegance)
+    endif ()
+endif ()
 
-elg_example(hello)
-elg_example(counter)
-elg_example(todos)
-elg_example(layout)
-elg_example(styling)
-elg_example(drawing)
-elg_example(animation)
-elg_example(title_bar)
-elg_example(media_player)
-elg_example(network)
-elg_example(recorder)
-elg_example(desktop)
-elg_example(popover)
-elg_example(navigation)
-elg_example(grids)
-elg_example(effects)
-
-# OpenGL draws into a GpuImage (Windows only for now). SDL, Elegence's own dependency, provides
-# the context.
+add_subdirectory(minimal-cpp)
+add_subdirectory(counter-cpp)
+add_subdirectory(todos-cpp)
+add_subdirectory(layout-cpp)
+add_subdirectory(styling-cpp)
+add_subdirectory(drawing-cpp)
+add_subdirectory(animation-cpp)
+add_subdirectory(title-bar-cpp)
+add_subdirectory(media-player-cpp)
+add_subdirectory(network-cpp)
+add_subdirectory(recorder-cpp)
+add_subdirectory(desktop-cpp)
+add_subdirectory(popover-cpp)
+add_subdirectory(navigation-cpp)
+add_subdirectory(grids-cpp)
+add_subdirectory(effects-cpp)
+add_subdirectory(login-cpp)
+add_subdirectory(music-cpp)
+add_subdirectory(shell-cpp)
+add_subdirectory(design-cpp)
+add_subdirectory(hello-cpp)
+add_subdirectory(preview-cpp)
 if (WIN32)
-    find_package(SDL3 CONFIG REQUIRED)
-    find_package(OpenGL REQUIRED)
-    elg_example(opengl)
-    target_link_libraries(example_opengl PRIVATE SDL3::SDL3 OpenGL::GL)
+    add_subdirectory(opengl-cpp)
 endif ()

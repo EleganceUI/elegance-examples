@@ -1,0 +1,16 @@
+# Every Rust example in one workspace (one target folder, one build of Elegance). Each <name>-rs
+# folder is also a complete project on its own.
+
+[workspace]
+resolver = "2"
+members = [
+    "hello-rs",
+    "counter-rs",
+    "todos-rs",
+    "effects-rs",
+    "grids-rs",
+    "icon-strip-rs",
+    "popover-rs",
+    "split-view-rs",
+    "preview-rs",
+]

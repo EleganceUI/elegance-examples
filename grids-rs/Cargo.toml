@@ -1,0 +1,11 @@
+# grids: An adaptive VGrid of cards, and a Grid table.
+# A complete project: copy this folder to start an app (see the README one folder up).
+
+[package]
+name = "grids"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+elegance = { git = "https://github.com/EleganceUI/elegance-rs" }

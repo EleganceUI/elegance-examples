@@ -1,6 +1,6 @@
 // A component with a prop (`msg`) and some state of its own (`count`).
 
-use elegence::prelude::*;
+use elegance::prelude::*;
 
 #[component]
 pub fn HelloWorld(msg: String) -> impl IntoView {

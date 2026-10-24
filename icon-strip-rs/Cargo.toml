@@ -1,0 +1,11 @@
+# icon-strip: A strip of icons down the side that selects the page.
+# A complete project: copy this folder to start an app (see the README one folder up).
+
+[package]
+name = "icon-strip"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+elegance = { git = "https://github.com/EleganceUI/elegance-rs" }

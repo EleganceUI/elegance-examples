@@ -1,0 +1,11 @@
+# split-view: NavigationSplitView: a sidebar list that selects the detail.
+# A complete project: copy this folder to start an app (see the README one folder up).
+
+[package]
+name = "split-view"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+elegance = { git = "https://github.com/EleganceUI/elegance-rs" }

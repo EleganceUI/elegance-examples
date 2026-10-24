@@ -1,6 +1,6 @@
 // The root component: the whole window's content.
 
-use elegence::prelude::*;
+use elegance::prelude::*;
 
 use crate::components::HelloWorld;
 

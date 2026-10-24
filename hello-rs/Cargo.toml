@@ -1,8 +1,11 @@
+# hello: A starter app: a root component and a component with a prop and state.
+# A complete project: copy this folder to start an app (see the README one folder up).
+
 [package]
-name = "hello-elegence"
+name = "hello"
 version = "0.1.0"
 edition = "2021"
 publish = false
 
 [dependencies]
-elegence = { path = "../../elegence-rust/elegence" }
+elegance = { git = "https://github.com/EleganceUI/elegance-rs" }
