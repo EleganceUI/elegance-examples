@@ -107,7 +107,7 @@ fn main() -> Result<ExitCode, Error> {
     let renderer = std::rc::Rc::new(renderer::CubeRenderer::new(image.clone(), 60.0));
     let result = app
         .window(
-            WindowDesc::new("WebGPU").size(640, 640),
+            WindowDesc::new("wgpu · Image (CPU copy)").size(640, 640),
             Cube {
                 image,
                 renderer: renderer.clone(),

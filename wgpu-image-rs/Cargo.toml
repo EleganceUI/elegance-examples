@@ -1,8 +1,8 @@
-# webgpu: A cube drawn by wgpu on its own thread, displayed through an Elegance VideoFeed.
+# wgpu-image: A cube drawn by wgpu on its own thread, displayed through an Elegance VideoFeed.
 # A complete project: copy this folder to start an app (see the README one folder up).
 
 [package]
-name = "webgpu"
+name = "wgpu-image"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
