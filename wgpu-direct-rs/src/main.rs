@@ -13,7 +13,7 @@ struct Cube {
 impl Cube {
     fn new() -> Result<Self, Error> {
         Ok(Self {
-            renderer: Rc::new(CubeRenderer::new(512, 60.0)?),
+            renderer: Rc::new(CubeRenderer::new(60.0)?),
         })
     }
 }
@@ -21,8 +21,6 @@ impl Cube {
 impl Component for Cube {
     fn body(&self) -> impl IntoView {
         let speed = State::new(60.0f32);
-        // The mounted effect owns the renderer, not just its input sender: component
-        // descriptions can be dropped after body() builds their element tree.
         let renderer = self.renderer.clone();
 
         effect(move || {
@@ -31,9 +29,13 @@ impl Component for Cube {
 
         let pointer = self.renderer.input.clone();
         let scroll = self.renderer.input.clone();
+        let resize = self.renderer.input.clone();
         elg! {
             ZStack(alignment: .bottom) {
                 ExternalGpuImageView(&self.renderer.image, mode: .fill)
+                    .on_size_change(move |size| {
+                        let _ = resize.send(Input::Resize(size));
+                    })
                     .on_drag(move |event| {
                         let input = match event {
                             DragEvent::Started => Input::Grab(true),

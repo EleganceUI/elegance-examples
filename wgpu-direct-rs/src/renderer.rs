@@ -4,9 +4,9 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use elegance::{Error, ErrorKind, ExternalGpuImage};
+use elegance::{Error, ErrorKind, ExternalGpuImage, PixelSize};
 use elegance_wgpu::{
-    wgpu, Bridge, Config, Error as BridgeError, GpuImageOrigin, RenderPassOptions,
+    wgpu, Bridge, Config, Error as BridgeError, GpuImageOrigin, RenderAttachments,
 };
 use pollster::block_on;
 use wgpu::util::DeviceExt;
@@ -16,6 +16,7 @@ const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth24Plus;
 const COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 
 pub enum Input {
+    Resize(PixelSize),
     Speed(f32),
     Grab(bool),
     Drag { dx: f32, dy: f32 },
@@ -28,15 +29,15 @@ pub struct CubeRenderer {
 }
 
 impl CubeRenderer {
-    pub fn new(size: u32, speed: f32) -> Result<Self, Error> {
+    pub fn new(speed: f32) -> Result<Self, Error> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
         let adapter = block_on(instance.request_adapter(&Default::default()))
             .map_err(|error| Error::new(ErrorKind::Gpu, error.to_string()))?;
         let bridge = block_on(Bridge::new(
             &adapter,
             Config {
-                width: size,
-                height: size,
+                width: 1,
+                height: 1,
                 origin: GpuImageOrigin::TopLeft,
                 format: COLOR_FORMAT,
                 max_frames: 4,
@@ -47,7 +48,7 @@ impl CubeRenderer {
         let image = bridge.image().clone();
         let (input, inputs) = mpsc::channel();
         thread::spawn(move || {
-            if let Err(error) = run(bridge, size, speed, inputs) {
+            if let Err(error) = run(bridge, speed, inputs) {
                 eprintln!("wgpu-direct: {error}");
             }
         });
@@ -64,27 +65,10 @@ struct Pose {
     held: bool,
 }
 
-impl Pose {
-    fn apply(&mut self, input: Input) {
-        match input {
-            Input::Speed(speed) => self.speed = speed,
-            Input::Grab(held) => self.held = held,
-            Input::Drag { dx, dy } => {
-                self.yaw += dx * 0.5;
-                self.pitch += dy * 0.5;
-            }
-            Input::Zoom(factor) => self.distance = (self.distance / factor).clamp(3.5, 15.0),
-        }
-    }
-}
+fn run(mut bridge: Bridge, speed: f32, inputs: mpsc::Receiver<Input>) -> Result<(), String> {
+    let mut gpu = Gpu::new(bridge.device());
+    let mut size = PixelSize::default();
 
-fn run(
-    mut bridge: Bridge,
-    size: u32,
-    speed: f32,
-    inputs: mpsc::Receiver<Input>,
-) -> Result<(), String> {
-    let gpu = Gpu::new(bridge.device().clone(), size, size);
     let mut pose = Pose {
         yaw: 0.0,
         pitch: 0.0,
@@ -98,7 +82,18 @@ fn run(
     let result = 'render: loop {
         loop {
             match inputs.try_recv() {
-                Ok(input) => pose.apply(input),
+                Ok(input) => match input {
+                    Input::Resize(next) => size = next,
+                    Input::Speed(speed) => pose.speed = speed,
+                    Input::Grab(held) => pose.held = held,
+                    Input::Drag { dx, dy } => {
+                        pose.yaw += dx * 0.5;
+                        pose.pitch += dy * 0.5;
+                    }
+                    Input::Zoom(factor) => {
+                        pose.distance = (pose.distance / factor).clamp(3.5, 15.0)
+                    }
+                },
                 Err(mpsc::TryRecvError::Empty) => break,
                 // The mounted UI owns the senders; dropping it stops the producer.
                 Err(mpsc::TryRecvError::Disconnected) => break 'render Ok(()),
@@ -106,6 +101,15 @@ fn run(
         }
 
         let now = Instant::now();
+        if size.width == 0 || size.height == 0 {
+            last = now;
+            progress = now;
+            thread::sleep(Duration::from_micros(16_667));
+            continue;
+        }
+        if let Err(error) = bridge.resize(size.width, size.height) {
+            break Err(format!("cube resize failed: {error}"));
+        }
         if now.duration_since(progress) >= Duration::from_secs(10) {
             break Err("no GPU frame could be published for 10 seconds".to_string());
         }
@@ -135,12 +139,11 @@ struct Gpu {
     vertices: wgpu::Buffer,
     uniforms: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
-    samples: wgpu::TextureView,
-    depth: wgpu::TextureView,
+    attachments: RenderAttachments,
 }
 
 impl Gpu {
-    fn new(device: wgpu::Device, width: u32, height: u32) -> Self {
+    fn new(device: &wgpu::Device) -> Self {
         let shader = device.create_shader_module(wgpu::include_wgsl!("cube.wgsl"));
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -201,38 +204,16 @@ impl Gpu {
             }],
         });
 
-        let attachment = |format| {
-            device
-                .create_texture(&wgpu::TextureDescriptor {
-                    label: Some("cube"),
-                    size: wgpu::Extent3d {
-                        width,
-                        height,
-                        depth_or_array_layers: 1,
-                    },
-                    mip_level_count: 1,
-                    sample_count: SAMPLES,
-                    dimension: wgpu::TextureDimension::D2,
-                    format,
-                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                    view_formats: &[],
-                })
-                .create_view(&Default::default())
-        };
-        let samples = attachment(COLOR_FORMAT);
-        let depth = attachment(DEPTH_FORMAT);
-
         Self {
             pipeline,
             vertices,
             uniforms,
             bind_group,
-            samples,
-            depth,
+            attachments: RenderAttachments::new(SAMPLES, Some(DEPTH_FORMAT)),
         }
     }
 
-    fn draw(&self, bridge: &mut Bridge, pose: &Pose) -> Result<(), BridgeError> {
+    fn draw(&mut self, bridge: &mut Bridge, pose: &Pose) -> Result<(), BridgeError> {
         bridge.render(|frame| {
             let size = frame.size();
             let transform = mul(
@@ -243,24 +224,13 @@ impl Gpu {
                 ),
             );
             frame.write_buffer(&self.uniforms, 0, as_bytes(&[transform]));
-            frame.render_pass(
-                RenderPassOptions {
-                    label: Some("cube"),
-                    clear: wgpu::Color {
-                        r: 0.07,
-                        g: 0.08,
-                        b: 0.11,
-                        a: 1.0,
-                    },
-                    multisample: Some(&self.samples),
-                    depth_stencil: Some(wgpu::RenderPassDepthStencilAttachment {
-                        view: &self.depth,
-                        depth_ops: Some(wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(1.0),
-                            store: wgpu::StoreOp::Discard,
-                        }),
-                        stencil_ops: None,
-                    }),
+            frame.render_pass_with(
+                &mut self.attachments,
+                wgpu::Color {
+                    r: 0.07,
+                    g: 0.08,
+                    b: 0.11,
+                    a: 1.0,
                 },
                 |pass| {
                     pass.set_pipeline(&self.pipeline);
