@@ -1,4 +1,4 @@
-# webgpu: A cube drawn by wgpu (WebGPU in Rust) on its own thread into a GpuImage (Windows).
+# webgpu: A cube drawn by wgpu on its own thread, displayed through an Elegance VideoFeed.
 # A complete project: copy this folder to start an app (see the README one folder up).
 
 [package]
@@ -10,9 +10,4 @@ publish = false
 
 [dependencies]
 elegance = { git = "https://github.com/EleganceUI/elegance-rs" }
-
-# wgpu on Direct3D 12, and the Direct3D 12 calls that open the image's shared textures and fence
-# (the windows version wgpu uses).
-[target.'cfg(windows)'.dependencies]
-wgpu = { version = "30", default-features = false, features = ["std", "parking_lot", "dx12", "wgsl"] }
-windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Graphics_Direct3D12", "Win32_Graphics_Dxgi"] }
+wgpu = "30"

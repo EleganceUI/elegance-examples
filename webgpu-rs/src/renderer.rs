@@ -1,9 +1,5 @@
-// The cube, drawn by wgpu on Direct3D 12 on its own thread, straight into a GpuImage's buffers.
-//
-// The image shares each buffer as a Direct3D 11 texture and has one shared fence. Direct3D 12
-// opens both; wgpu wraps the textures (create_texture_from_hal) and signals the fence after each
-// frame's commands (add_signal_fence), so Elegance's GPU waits for the drawing and nothing here
-// waits for the GPU.
+// The cube, drawn into an offscreen wgpu texture on its own thread. Frames are read back
+// as BGRA pixels for Elegance's VideoFeed, using the same path on every desktop platform.
 
 use std::future::Future;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -13,14 +9,33 @@ use std::task::{Context, Poll, Waker};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use elegance::{GpuFrame, GpuImage, GpuImageSync};
-use wgpu::hal::api::Dx12;
+use elegance::{VideoFeed, VideoFormat};
 use wgpu::util::DeviceExt;
-use windows::Win32::Foundation::HANDLE;
-use windows::Win32::Graphics::Direct3D12::{ID3D12Fence, ID3D12Resource};
 
 const SAMPLES: u32 = 4;
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth24Plus;
+
+const COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
+
+/// The platform's presentation path, shared by the UI and render thread.
+#[derive(Clone)]
+pub struct Image {
+    feed: VideoFeed,
+    size: u32,
+}
+
+impl Image {
+    pub fn new(size: u32) -> Result<Self, elegance::Error> {
+        Ok(Self {
+            feed: VideoFeed::new()?,
+            size,
+        })
+    }
+
+    pub fn view(&self) -> impl elegance::IntoView {
+        elegance::VideoFeedView::new(&self.feed).mode(elegance::ContentMode::Fill)
+    }
+}
 
 /// What the window's events do to the cube, sent to its thread.
 pub enum Input {
@@ -41,7 +56,7 @@ pub struct CubeRenderer {
 }
 
 impl CubeRenderer {
-    pub fn new(image: GpuImage, speed: f32) -> Self {
+    pub fn new(image: Image, speed: f32) -> Self {
         let speed = Arc::new(AtomicU32::new(speed.to_bits()));
         let running = Arc::new(AtomicBool::new(true));
         let (input, inputs) = mpsc::channel();
@@ -86,7 +101,7 @@ impl Drop for CubeRenderer {
     }
 }
 
-// One of the image's buffers, imported.
+// The offscreen render target.
 struct Target {
     view: wgpu::TextureView,
     texture: wgpu::Texture,
@@ -113,22 +128,42 @@ impl Pose {
     }
 }
 
-fn run(image: &GpuImage, speed: &AtomicU32, inputs: &Receiver<Input>, running: &AtomicBool) -> Result<(), String> {
-    // Nothing until a window has drawn: the image is made on the renderer's GPU, and the first
-    // frame says which one.
-    let first = loop {
-        if !running.load(Ordering::Relaxed) {
-            return Ok(());
-        }
-        match image.begin_frame() {
-            Some(frame) => break frame,
-            None => std::thread::sleep(Duration::from_millis(10)),
-        }
+fn run(
+    image: &Image,
+    speed: &AtomicU32,
+    inputs: &Receiver<Input>,
+    running: &AtomicBool,
+) -> Result<(), String> {
+    let gpu = Gpu::new(image.size, image.size)?;
+    let texture = gpu.device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("cube output"),
+        size: wgpu::Extent3d {
+            width: image.size,
+            height: image.size,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: COLOR_FORMAT,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+        view_formats: &[],
+    });
+    let target = Target {
+        view: texture.create_view(&Default::default()),
+        texture,
     };
-    let gpu = Gpu::new(&first)?;
-    let fence = gpu.open_fence(&first)?;
-    let mut targets: Vec<Option<Target>> = (0..GpuImage::BUFFERS).map(|_| None).collect();
-
+    // Texture-to-buffer copies require padded rows; VideoFeed takes tightly packed BGRA.
+    let row_bytes = image.size * 4;
+    let padded_row_bytes =
+        row_bytes.div_ceil(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT) * wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+    let readback = gpu.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("cube readback"),
+        size: u64::from(padded_row_bytes) * u64::from(image.size),
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
+    let mut pixels = vec![0; row_bytes as usize * image.size as usize];
     let mut pose = Pose {
         yaw: 0.0,
         pitch: 0.0,
@@ -136,7 +171,6 @@ fn run(image: &GpuImage, speed: &AtomicU32, inputs: &Receiver<Input>, running: &
         held: false,
     };
     let mut last = Instant::now();
-    let mut next = Some(first);
     while running.load(Ordering::Relaxed) {
         let now = Instant::now();
         while let Ok(input) = inputs.try_recv() {
@@ -148,19 +182,54 @@ fn run(image: &GpuImage, speed: &AtomicU32, inputs: &Receiver<Input>, running: &
             pose.pitch += turn * 0.7;
         }
         last = now;
-
-        let Some(frame) = next.take().or_else(|| image.begin_frame()) else {
-            std::thread::sleep(Duration::from_millis(10));
-            continue;
-        };
-        let target = match &mut targets[frame.buffer as usize] {
-            Some(target) => target,
-            slot => slot.insert(gpu.import(&frame)?),
-        };
-        gpu.draw(target, &pose, &fence, frame.fence_value);
-        image.end_frame(&frame, GpuImageSync::Fence);
-
-        std::thread::sleep((now + Duration::from_micros(16_667)).saturating_duration_since(Instant::now()));
+        let mut encoder = gpu.draw(&target, &pose);
+        encoder.copy_texture_to_buffer(
+            target.texture.as_image_copy(),
+            wgpu::TexelCopyBufferInfo {
+                buffer: &readback,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(padded_row_bytes),
+                    rows_per_image: None,
+                },
+            },
+            target.texture.size(),
+        );
+        let submission = gpu.queue.submit([encoder.finish()]);
+        let (tx, rx) = mpsc::channel();
+        readback
+            .slice(..)
+            .map_async(wgpu::MapMode::Read, move |result| {
+                let _ = tx.send(result);
+            });
+        gpu.device
+            .poll(wgpu::PollType::Wait {
+                submission_index: Some(submission),
+                timeout: Some(Duration::from_secs(5)),
+            })
+            .map_err(|error| format!("GPU readback failed: {error}"))?;
+        rx.recv_timeout(Duration::from_secs(5))
+            .map_err(|error| error.to_string())?
+            .map_err(|error| error.to_string())?;
+        {
+            let mapped = readback
+                            .slice(..)
+                            .get_mapped_range()
+                            .map_err(|error| format!("GPU mapped range failed: {error}"))?;
+            for (src, dst) in mapped
+                .chunks_exact(padded_row_bytes as usize)
+                .zip(pixels.chunks_exact_mut(row_bytes as usize))
+            {
+                dst.copy_from_slice(&src[..row_bytes as usize]);
+            }
+        }
+        readback.unmap();
+        image
+            .feed
+            .push(VideoFormat::Bgra, image.size, image.size, &pixels, true);
+        std::thread::sleep(
+            (now + Duration::from_micros(16_667)).saturating_duration_since(Instant::now()),
+        );
     }
     Ok(())
 }
@@ -177,29 +246,16 @@ struct Gpu {
 }
 
 impl Gpu {
-    // A device on the GPU Elegance draws with (frame.adapter_luid), which can open its textures.
-    fn new(frame: &GpuFrame) -> Result<Self, String> {
-        let mut descriptor = wgpu::InstanceDescriptor::new_without_display_handle();
-        descriptor.backends = wgpu::Backends::DX12;
-        // No debug layer: turning it on removes the D3D12 devices the process already has
-        // (Elegance's).
-        descriptor.flags = wgpu::InstanceFlags::empty();
-        let instance = wgpu::Instance::new(descriptor);
-        let adapter = block_on(instance.enumerate_adapters(wgpu::Backends::DX12))
-            .into_iter()
-            .find(|adapter| {
-                let Some(hal) = (unsafe { adapter.as_hal::<Dx12>() }) else {
-                    return false;
-                };
-                let Ok(desc) = (unsafe { hal.as_raw().GetDesc1() }) else {
-                    return false;
-                };
-                let mut luid = [0u8; 8];
-                luid[..4].copy_from_slice(&desc.AdapterLuid.LowPart.to_le_bytes());
-                luid[4..].copy_from_slice(&desc.AdapterLuid.HighPart.to_le_bytes());
-                luid == frame.adapter_luid
-            })
-            .ok_or("Elegance's GPU has no Direct3D 12 adapter")?;
+    fn new(width: u32, height: u32) -> Result<Self, String> {
+        let adapter = block_on(
+            wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle())
+                .request_adapter(&wgpu::RequestAdapterOptions::default()),
+        )
+        .map_err(|error| format!("can't find a GPU adapter: {error}"))?;
+        Self::with_adapter(adapter, width, height)
+    }
+
+    fn with_adapter(adapter: wgpu::Adapter, width: u32, height: u32) -> Result<Self, String> {
         let (device, queue) = block_on(adapter.request_device(&wgpu::DeviceDescriptor {
             label: Some("cube"),
             ..Default::default()
@@ -222,11 +278,13 @@ impl Gpu {
         });
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("cube"),
-            layout: Some(&device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("cube"),
-                bind_group_layouts: &[Some(&layout)],
-                immediate_size: 0,
-            })),
+            layout: Some(
+                &device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: Some("cube"),
+                    bind_group_layouts: &[Some(&layout)],
+                    immediate_size: 0,
+                }),
+            ),
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
@@ -256,7 +314,7 @@ impl Gpu {
                 module: &shader,
                 entry_point: Some("fs_main"),
                 compilation_options: Default::default(),
-                targets: &[Some(wgpu::TextureFormat::Rgba8Unorm.into())],
+                targets: &[Some(COLOR_FORMAT.into())],
             }),
             multiview_mask: None,
             cache: None,
@@ -287,8 +345,8 @@ impl Gpu {
                 .create_texture(&wgpu::TextureDescriptor {
                     label: Some("cube"),
                     size: wgpu::Extent3d {
-                        width: frame.width,
-                        height: frame.height,
+                        width,
+                        height,
                         depth_or_array_layers: 1,
                     },
                     mip_level_count: 1,
@@ -300,7 +358,7 @@ impl Gpu {
                 })
                 .create_view(&Default::default())
         };
-        let samples = attachment(wgpu::TextureFormat::Rgba8Unorm);
+        let samples = attachment(COLOR_FORMAT);
         let depth = attachment(DEPTH_FORMAT);
 
         Ok(Self {
@@ -315,60 +373,7 @@ impl Gpu {
         })
     }
 
-    // The image's fence, the same for every frame.
-    fn open_fence(&self, frame: &GpuFrame) -> Result<ID3D12Fence, String> {
-        let device = unsafe { self.device.as_hal::<Dx12>() }.ok_or("not a Direct3D 12 device")?;
-        let mut fence: Option<ID3D12Fence> = None;
-        unsafe { device.raw_device().OpenSharedHandle(HANDLE(frame.fence), &mut fence) }
-            .map_err(|error| format!("can't open the image's fence: {error}"))?;
-        fence.ok_or_else(|| "can't open the image's fence".into())
-    }
-
-    // A buffer's texture, as a wgpu texture to render to. Imported once per buffer.
-    fn import(&self, frame: &GpuFrame) -> Result<Target, String> {
-        let device = unsafe { self.device.as_hal::<Dx12>() }.ok_or("not a Direct3D 12 device")?;
-        let mut resource: Option<ID3D12Resource> = None;
-        unsafe {
-            device
-                .raw_device()
-                .OpenSharedHandle(HANDLE(frame.texture), &mut resource)
-        }
-        .map_err(|error| format!("can't open the image's texture: {error}"))?;
-        let resource = resource.ok_or("can't open the image's texture")?;
-        drop(device);
-
-        let size = wgpu::Extent3d {
-            width: frame.width,
-            height: frame.height,
-            depth_or_array_layers: 1,
-        };
-        let format = wgpu::TextureFormat::Rgba8Unorm; // DXGI_FORMAT_R8G8B8A8_UNORM
-        let texture = unsafe {
-            let raw =
-                wgpu::hal::dx12::Device::texture_from_raw(resource, format, wgpu::TextureDimension::D2, size, 1, 1);
-            self.device.create_texture_from_hal::<Dx12>(
-                raw,
-                &wgpu::TextureDescriptor {
-                    label: Some("image buffer"),
-                    size,
-                    mip_level_count: 1,
-                    sample_count: 1,
-                    dimension: wgpu::TextureDimension::D2,
-                    format,
-                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                    view_formats: &[],
-                },
-                // Shared textures start, and must be left, in the common state.
-                wgpu::TextureUses::PRESENT,
-            )
-        };
-        Ok(Target {
-            view: texture.create_view(&Default::default()),
-            texture,
-        })
-    }
-
-    fn draw(&self, target: &Target, pose: &Pose, fence: &ID3D12Fence, fence_value: u64) {
+    fn draw(&self, target: &Target, pose: &Pose) -> wgpu::CommandEncoder {
         let aspect = target.texture.width() as f32 / target.texture.height() as f32;
         let transform = mul(
             perspective(aspect),
@@ -377,7 +382,8 @@ impl Gpu {
                 mul(rotation_x(pose.pitch), rotation_y(pose.yaw)),
             ),
         );
-        self.queue.write_buffer(&self.uniforms, 0, as_bytes(&transform));
+        self.queue
+            .write_buffer(&self.uniforms, 0, as_bytes(&transform));
 
         let mut encoder = self.device.create_command_encoder(&Default::default());
         {
@@ -412,21 +418,7 @@ impl Gpu {
             pass.set_vertex_buffer(0, self.vertices.slice(..));
             pass.draw(0..36, 0..1);
         }
-        // Back to the common state, for Elegance's GPU to read.
-        encoder.transition_resources(
-            std::iter::empty(),
-            std::iter::once(wgpu::TextureTransition {
-                texture: &target.texture,
-                selector: None,
-                state: wgpu::TextureUses::PRESENT,
-            }),
-        );
-
-        // The fence reaches fence_value once the GPU has run this submission.
-        if let Some(queue) = unsafe { self.queue.as_hal::<Dx12>() } {
-            queue.add_signal_fence(fence.clone(), fence_value);
-        }
-        self.queue.submit([encoder.finish()]);
+        encoder
     }
 }
 
@@ -447,7 +439,14 @@ fn cube_vertices() -> Vec<[f32; 6]> {
             // A little darker toward two corners, so the faces read as surfaces.
             let shade = if i < 2 { 0.78 } else { 1.0 };
             let [x, y, z] = corners[i];
-            vertices.push([x, y, z, color[0] * shade, color[1] * shade, color[2] * shade]);
+            vertices.push([
+                x,
+                y,
+                z,
+                color[0] * shade,
+                color[1] * shade,
+                color[2] * shade,
+            ]);
         }
     }
     vertices
@@ -481,17 +480,23 @@ fn perspective(aspect: f32) -> Mat4 {
 }
 
 fn translation(x: f32, y: f32, z: f32) -> Mat4 {
-    [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, x, y, z, 1.0]
+    [
+        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, x, y, z, 1.0,
+    ]
 }
 
 fn rotation_x(degrees: f32) -> Mat4 {
     let (s, c) = degrees.to_radians().sin_cos();
-    [1.0, 0.0, 0.0, 0.0, 0.0, c, s, 0.0, 0.0, -s, c, 0.0, 0.0, 0.0, 0.0, 1.0]
+    [
+        1.0, 0.0, 0.0, 0.0, 0.0, c, s, 0.0, 0.0, -s, c, 0.0, 0.0, 0.0, 0.0, 1.0,
+    ]
 }
 
 fn rotation_y(degrees: f32) -> Mat4 {
     let (s, c) = degrees.to_radians().sin_cos();
-    [c, 0.0, -s, 0.0, 0.0, 1.0, 0.0, 0.0, s, 0.0, c, 0.0, 0.0, 0.0, 0.0, 1.0]
+    [
+        c, 0.0, -s, 0.0, 0.0, 1.0, 0.0, 0.0, s, 0.0, c, 0.0, 0.0, 0.0, 0.0, 1.0,
+    ]
 }
 
 fn as_bytes<T: Copy>(values: &[T]) -> &[u8] {

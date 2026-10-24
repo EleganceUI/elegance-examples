@@ -1,30 +1,25 @@
 // WebGPU: a spinning cube drawn by wgpu on its own thread, shown in an Elegance window with
-// controls over it. wgpu draws straight into a GpuImage's shared textures (no copies) and
-// signals its shared fence when each frame is done. Drag the cube to turn it, scroll to zoom:
-// an event handler on the image sends the window's events to the drawing thread. Windows only
-// for now, like GpuImage.
+// controls over it. Frames are rendered offscreen and read back into a VideoFeed on every
+// desktop platform. Drag the cube to turn it, scroll to zoom: an event handler
+// on the image sends the window's events to the drawing thread.
 
 use std::process::ExitCode;
 
 use elegance::prelude::*;
 
-#[cfg(windows)]
 mod renderer;
 
 const SIZE: u32 = 512; // pixels, square
 
 // The cube, filling the window, with a speed slider over it.
-#[cfg(windows)]
 struct Cube {
-    image: GpuImage,
+    image: renderer::Image,
     renderer: std::rc::Rc<renderer::CubeRenderer>,
 }
 
 // Sends pointer drags and scrolling over the image to the renderer.
-#[cfg(windows)]
 struct CubeInput(std::sync::mpsc::Sender<renderer::Input>);
 
-#[cfg(windows)]
 impl EventModifier for CubeInput {
     fn make_handler(&self) -> Box<dyn EventHandler> {
         Box::new(CubeHandler {
@@ -34,13 +29,11 @@ impl EventModifier for CubeInput {
     }
 }
 
-#[cfg(windows)]
 struct CubeHandler {
     input: std::sync::mpsc::Sender<renderer::Input>,
     last: Option<Point>, // while dragging
 }
 
-#[cfg(windows)]
 impl EventHandler for CubeHandler {
     fn pointer(&mut self, event: &PointerEvent, _frame: Rect) -> EventResult {
         use renderer::Input;
@@ -68,7 +61,9 @@ impl EventHandler for CubeHandler {
 
     fn scroll(&mut self, event: &ScrollEvent) -> EventResult {
         // In points, 48 a wheel notch, positive scrolling down: up zooms in.
-        let _ = self.input.send(renderer::Input::Zoom(1.1f32.powf(-event.dy / 48.0)));
+        let _ = self
+            .input
+            .send(renderer::Input::Zoom(1.1f32.powf(-event.dy / 48.0)));
         EventResult::CONSUMED
     }
 
@@ -78,7 +73,6 @@ impl EventHandler for CubeHandler {
     }
 }
 
-#[cfg(windows)]
 impl Component for Cube {
     fn body(&self) -> impl IntoView {
         let speed = State::new(60.0f32);
@@ -92,8 +86,7 @@ impl Component for Cube {
         );
         elg! {
             ZStack(alignment: .bottom) {
-                GpuImageView(&self.image)
-                    .mode(ContentMode::Fill)
+                { self.image.view() }
                     .modifier(AsEvent(CubeInput(self.renderer.input())))
                 HStack(spacing: 12) {
                     Text("Speed")
@@ -108,10 +101,9 @@ impl Component for Cube {
     }
 }
 
-#[cfg(windows)]
 fn main() -> Result<ExitCode, Error> {
     let app = App::new();
-    let image = GpuImage::new(SIZE, SIZE, GpuImageOrigin::TopLeft)?;
+    let image = renderer::Image::new(SIZE)?;
     let renderer = std::rc::Rc::new(renderer::CubeRenderer::new(image.clone(), 60.0));
     let result = app
         .window(
@@ -124,14 +116,4 @@ fn main() -> Result<ExitCode, Error> {
         .run();
     renderer.stop(); // before the app goes
     result
-}
-
-#[cfg(not(windows))]
-fn main() -> Result<ExitCode, Error> {
-    let _ = SIZE;
-    App::new()
-        .window(WindowDesc::new("WebGPU").size(480, 200), || {
-            elg! { Text("The webgpu example runs on Windows only for now").padding(24) }
-        })
-        .run()
 }
