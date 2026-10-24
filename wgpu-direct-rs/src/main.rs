@@ -33,7 +33,7 @@ impl Component for Cube {
         elg! {
             ZStack(alignment: .bottom) {
                 ExternalGpuImageView(&self.renderer.image, mode: .fill)
-                    .on_size_change(move |size| {
+                    .on_sized(move |size| {
                         let _ = resize.send(Input::Resize(size));
                     })
                     .on_drag(move |event| {
