@@ -1,237 +1,241 @@
 // The cube, drawn into an offscreen wgpu texture on its own thread. Frames are read back
 // as BGRA pixels for Elegance's VideoFeed, using the same path on every desktop platform.
 
-use std::future::Future;
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{mpsc, Arc, Mutex};
-use std::task::{Context, Poll, Waker};
-use std::thread::JoinHandle;
+use std::sync::mpsc;
+use std::thread;
 use std::time::{Duration, Instant};
 
-use elegance::{VideoFeed, VideoFormat};
+use elegance::{Error, ErrorKind, PixelSize, VideoFeed, VideoFormat};
+use pollster::block_on;
 use wgpu::util::DeviceExt;
 
 const SAMPLES: u32 = 4;
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth24Plus;
 const COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 
-/// The platform's presentation path, shared by the UI and render thread.
-#[derive(Clone)]
-pub struct Image {
-    feed: VideoFeed,
-    size: u32,
-}
-
-impl Image {
-    pub fn new(size: u32) -> Result<Self, elegance::Error> {
-        Ok(Self {
-            feed: VideoFeed::new()?,
-            size,
-        })
-    }
-
-    pub fn view(&self) -> impl elegance::IntoView {
-        elegance::VideoFeedView::new(&self.feed).mode(elegance::ContentMode::Fill)
-    }
-}
-
-/// What the window's events do to the cube, sent to its thread.
 pub enum Input {
-    /// The pointer went down on the cube (true), or let go (false). It stops spinning while held.
+    Resize(PixelSize),
+    Speed(f32),
     Grab(bool),
-    /// Turn it by a drag, in points.
     Drag { dx: f32, dy: f32 },
-    /// Move it closer (above 1) or farther (below 1).
     Zoom(f32),
 }
 
-/// Draws the cube into `image` until stopped or dropped.
 pub struct CubeRenderer {
-    speed: Arc<AtomicU32>, // degrees per second, as f32 bits
-    input: Sender<Input>,
-    running: Arc<AtomicBool>,
-    thread: Mutex<Option<JoinHandle<()>>>,
+    pub image: VideoFeed,
+    pub input: mpsc::Sender<Input>,
 }
 
 impl CubeRenderer {
-    pub fn new(image: Image, speed: f32) -> Self {
-        let speed = Arc::new(AtomicU32::new(speed.to_bits()));
-        let running = Arc::new(AtomicBool::new(true));
+    pub fn new(speed: f32) -> Result<Self, Error> {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
+        let adapter = block_on(instance.request_adapter(&Default::default())).map_err(|error| {
+            Error::new(
+                ErrorKind::Gpu,
+                format!("GPU adapter request failed: {error}"),
+            )
+        })?;
+        let (device, queue) = block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+            label: Some("cube"),
+            ..Default::default()
+        }))
+        .map_err(|error| {
+            Error::new(
+                ErrorKind::Gpu,
+                format!("GPU device request failed: {error}"),
+            )
+        })?;
+        let image = VideoFeed::new()?;
+        let output = image.clone();
         let (input, inputs) = mpsc::channel();
-        let thread = std::thread::spawn({
-            let (speed, running) = (speed.clone(), running.clone());
-            move || {
-                if let Err(message) = run(&image, &speed, &inputs, &running) {
-                    eprintln!("webgpu: {message}");
-                }
+        thread::spawn(move || {
+            if let Err(error) = run(Gpu::new(device, queue), output, speed, inputs) {
+                eprintln!("wgpu-image: {error}");
             }
         });
-
-        Self {
-            speed,
-            input,
-            running,
-            thread: Mutex::new(Some(thread)),
-        }
-    }
-
-    /// Degrees per second.
-    pub fn set_speed(&self, speed: f32) {
-        self.speed.store(speed.to_bits(), Ordering::Relaxed);
-    }
-
-    /// Where to send the window's events (from any thread).
-    pub fn input(&self) -> Sender<Input> {
-        self.input.clone()
-    }
-
-    /// Stops drawing, once the thread has finished its frame.
-    pub fn stop(&self) {
-        self.running.store(false, Ordering::Relaxed);
-        if let Some(thread) = self.thread.lock().unwrap().take() {
-            let _ = thread.join();
-        }
+        Ok(Self { image, input })
     }
 }
 
-impl Drop for CubeRenderer {
-    fn drop(&mut self) {
-        self.stop();
-    }
-}
-
-// The offscreen render target.
-struct Target {
-    view: wgpu::TextureView,
-    texture: wgpu::Texture,
-}
-
-// Where the cube is turned to, and how far away it is.
 struct Pose {
-    yaw: f32,   // degrees
-    pitch: f32, // degrees
+    yaw: f32,
+    pitch: f32,
     distance: f32,
+    speed: f32,
     held: bool,
 }
 
-impl Pose {
-    fn apply(&mut self, input: Input) {
-        match input {
-            Input::Grab(held) => self.held = held,
-            Input::Drag { dx, dy } => {
-                self.yaw += dx * 0.5;
-                self.pitch += dy * 0.5;
-            }
-            Input::Zoom(factor) => self.distance = (self.distance / factor).clamp(3.5, 15.0),
-        }
-    }
-}
-
 fn run(
-    image: &Image,
-    speed: &AtomicU32,
-    inputs: &Receiver<Input>,
-    running: &AtomicBool,
+    mut gpu: Gpu,
+    image: VideoFeed,
+    speed: f32,
+    inputs: mpsc::Receiver<Input>,
 ) -> Result<(), String> {
-    let gpu = Gpu::new(image.size, image.size)?;
-    let texture = gpu.device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("cube output"),
-        size: wgpu::Extent3d {
-            width: image.size,
-            height: image.size,
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: COLOR_FORMAT,
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
-        view_formats: &[],
-    });
-    let target = Target {
-        view: texture.create_view(&Default::default()),
-        texture,
-    };
-    // Texture-to-buffer copies require padded rows; VideoFeed takes tightly packed BGRA.
-    let row_bytes = image.size * 4;
-    let padded_row_bytes =
-        row_bytes.div_ceil(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT) * wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
-    let readback = gpu.device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("cube readback"),
-        size: u64::from(padded_row_bytes) * u64::from(image.size),
-        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-        mapped_at_creation: false,
-    });
-    let mut pixels = vec![0; row_bytes as usize * image.size as usize];
+    let mut size = PixelSize::default();
     let mut pose = Pose {
         yaw: 0.0,
         pitch: 0.0,
         distance: 6.0,
+        speed,
         held: false,
     };
     let mut last = Instant::now();
-    while running.load(Ordering::Relaxed) {
+    loop {
+        loop {
+            match inputs.try_recv() {
+                Ok(input) => match input {
+                    Input::Resize(next) => size = next,
+                    Input::Speed(speed) => pose.speed = speed,
+                    Input::Grab(held) => pose.held = held,
+                    Input::Drag { dx, dy } => {
+                        pose.yaw += dx * 0.5;
+                        pose.pitch += dy * 0.5;
+                    }
+                    Input::Zoom(factor) => {
+                        pose.distance = (pose.distance / factor).clamp(3.5, 15.0)
+                    }
+                },
+                Err(mpsc::TryRecvError::Empty) => break,
+                // The mounted UI owns the senders; dropping it stops the producer.
+                Err(mpsc::TryRecvError::Disconnected) => return Ok(()),
+            }
+        }
         let now = Instant::now();
-        while let Ok(input) = inputs.try_recv() {
-            pose.apply(input);
+        if size.width == 0 || size.height == 0 {
+            last = now;
+            thread::sleep(Duration::from_micros(16_667));
+            continue;
         }
         if !pose.held {
-            let turn = f32::from_bits(speed.load(Ordering::Relaxed)) * (now - last).as_secs_f32();
+            let turn = pose.speed * (now - last).as_secs_f32();
             pose.yaw += turn;
             pose.pitch += turn * 0.7;
         }
         last = now;
-        let mut encoder = gpu.draw(&target, &pose);
-        encoder.copy_texture_to_buffer(
-            target.texture.as_image_copy(),
-            wgpu::TexelCopyBufferInfo {
-                buffer: &readback,
-                layout: wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(padded_row_bytes),
-                    rows_per_image: None,
-                },
-            },
-            target.texture.size(),
-        );
-        let submission = gpu.queue.submit([encoder.finish()]);
-        let (tx, rx) = mpsc::channel();
-        readback
-            .slice(..)
-            .map_async(wgpu::MapMode::Read, move |result| {
-                let _ = tx.send(result);
-            });
-        gpu.device
-            .poll(wgpu::PollType::Wait {
-                submission_index: Some(submission),
-                timeout: Some(Duration::from_secs(5)),
-            })
-            .map_err(|error| format!("GPU readback failed: {error}"))?;
-        rx.recv_timeout(Duration::from_secs(5))
-            .map_err(|error| error.to_string())?
-            .map_err(|error| error.to_string())?;
-        {
-            let mapped = readback
-                .slice(..)
-                .get_mapped_range()
-                .map_err(|error| format!("GPU mapped range failed: {error}"))?;
-            for (src, dst) in mapped
-                .chunks_exact(padded_row_bytes as usize)
-                .zip(pixels.chunks_exact_mut(row_bytes as usize))
-            {
-                dst.copy_from_slice(&src[..row_bytes as usize]);
-            }
-        }
-        readback.unmap();
-        image
-            .feed
-            .push(VideoFormat::Bgra, image.size, image.size, &pixels, true);
-        std::thread::sleep(
+        gpu.draw(size, &pose, &image)?;
+        thread::sleep(
             (now + Duration::from_micros(16_667)).saturating_duration_since(Instant::now()),
         );
     }
-    Ok(())
+}
+
+// All size-dependent resources are replaced together, only when the texture size changes.
+struct Target {
+    texture: wgpu::Texture,
+    view: wgpu::TextureView,
+    samples: wgpu::TextureView,
+    depth: wgpu::TextureView,
+    readback: wgpu::Buffer,
+    rows: Rows,
+    pixels: Vec<u8>,
+}
+
+struct Rows {
+    packed: u32,
+    padded: u32,
+    buffer_size: u64,
+    pixel_len: usize,
+}
+
+impl Rows {
+    fn new(size: PixelSize, limits: &wgpu::Limits) -> Result<Self, String> {
+        if size.width == 0 || size.height == 0 {
+            return Err("cube target dimensions must be nonzero".into());
+        }
+        if size.width > limits.max_texture_dimension_2d
+            || size.height > limits.max_texture_dimension_2d
+        {
+            return Err(format!(
+                "cube target {}x{} exceeds GPU texture dimension limit {}",
+                size.width, size.height, limits.max_texture_dimension_2d
+            ));
+        }
+        let packed = size
+            .width
+            .checked_mul(4)
+            .ok_or("cube row byte count overflow")?;
+        let alignment = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+        let padded = packed
+            .checked_add(alignment - 1)
+            .map(|bytes| bytes / alignment * alignment)
+            .ok_or("cube padded row byte count overflow")?;
+        let buffer_size = u64::from(padded) * u64::from(size.height);
+        if buffer_size > limits.max_buffer_size || buffer_size > isize::MAX as u64 {
+            return Err(format!(
+                "cube readback requires {buffer_size} bytes, exceeding GPU or host buffer limits"
+            ));
+        }
+        let pixel_len = usize::try_from(u64::from(packed) * u64::from(size.height))
+            .map_err(|_| "cube packed pixel byte count exceeds host address space")?;
+        Ok(Self {
+            packed,
+            padded,
+            buffer_size,
+            pixel_len,
+        })
+    }
+}
+
+impl Target {
+    fn new(device: &wgpu::Device, size: PixelSize) -> Result<Self, String> {
+        let rows = Rows::new(size, &device.limits())?;
+        let mut pixels = Vec::new();
+        pixels
+            .try_reserve_exact(rows.pixel_len)
+            .map_err(|error| format!("cube pixel allocation failed: {error}"))?;
+        pixels.resize(rows.pixel_len, 0);
+        let texture = |label, format, sample_count, usage| {
+            device.create_texture(&wgpu::TextureDescriptor {
+                label: Some(label),
+                size: wgpu::Extent3d {
+                    width: size.width,
+                    height: size.height,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count,
+                dimension: wgpu::TextureDimension::D2,
+                format,
+                usage,
+                view_formats: &[],
+            })
+        };
+        let output = texture(
+            "cube output",
+            COLOR_FORMAT,
+            1,
+            wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+        );
+        let samples = texture(
+            "cube MSAA",
+            COLOR_FORMAT,
+            SAMPLES,
+            wgpu::TextureUsages::RENDER_ATTACHMENT,
+        )
+        .create_view(&Default::default());
+        let depth = texture(
+            "cube depth",
+            DEPTH_FORMAT,
+            SAMPLES,
+            wgpu::TextureUsages::RENDER_ATTACHMENT,
+        )
+        .create_view(&Default::default());
+        let readback = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("cube readback"),
+            size: rows.buffer_size,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        Ok(Self {
+            view: output.create_view(&Default::default()),
+            texture: output,
+            samples,
+            depth,
+            readback,
+            rows,
+            pixels,
+        })
+    }
 }
 
 struct Gpu {
@@ -241,50 +245,16 @@ struct Gpu {
     vertices: wgpu::Buffer,
     uniforms: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
-    samples: wgpu::TextureView, // drawn multisampled, resolved into the image's buffer
-    depth: wgpu::TextureView,
+    target: Option<Target>,
 }
 
 impl Gpu {
-    fn new(width: u32, height: u32) -> Result<Self, String> {
-        let adapter = block_on(
-            wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle())
-                .request_adapter(&wgpu::RequestAdapterOptions::default()),
-        )
-        .map_err(|error| format!("can't find a GPU adapter: {error}"))?;
-        Self::with_adapter(adapter, width, height)
-    }
-
-    fn with_adapter(adapter: wgpu::Adapter, width: u32, height: u32) -> Result<Self, String> {
-        let (device, queue) = block_on(adapter.request_device(&wgpu::DeviceDescriptor {
-            label: Some("cube"),
-            ..Default::default()
-        }))
-        .map_err(|error| error.to_string())?;
-
+    fn new(device: wgpu::Device, queue: wgpu::Queue) -> Self {
         let shader = device.create_shader_module(wgpu::include_wgsl!("cube.wgsl"));
-        let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("cube"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            }],
-        });
+
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("cube"),
-            layout: Some(
-                &device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: Some("cube"),
-                    bind_group_layouts: &[Some(&layout)],
-                    immediate_size: 0,
-                }),
-            ),
+            layout: None,
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
@@ -333,47 +303,31 @@ impl Gpu {
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("cube"),
-            layout: &layout,
+            layout: &pipeline.get_bind_group_layout(0),
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: uniforms.as_entire_binding(),
             }],
         });
 
-        let attachment = |format| {
-            device
-                .create_texture(&wgpu::TextureDescriptor {
-                    label: Some("cube"),
-                    size: wgpu::Extent3d {
-                        width,
-                        height,
-                        depth_or_array_layers: 1,
-                    },
-                    mip_level_count: 1,
-                    sample_count: SAMPLES,
-                    dimension: wgpu::TextureDimension::D2,
-                    format,
-                    usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-                    view_formats: &[],
-                })
-                .create_view(&Default::default())
-        };
-        let samples = attachment(COLOR_FORMAT);
-        let depth = attachment(DEPTH_FORMAT);
-
-        Ok(Self {
+        Self {
             device,
             queue,
             pipeline,
             vertices,
             uniforms,
             bind_group,
-            samples,
-            depth,
-        })
+            target: None,
+        }
     }
 
-    fn draw(&self, target: &Target, pose: &Pose) -> wgpu::CommandEncoder {
+    fn draw(&mut self, size: PixelSize, pose: &Pose, image: &VideoFeed) -> Result<(), String> {
+        if self.target.as_ref().is_none_or(|target| {
+            target.texture.width() != size.width || target.texture.height() != size.height
+        }) {
+            self.target = Some(Target::new(&self.device, size)?);
+        }
+        let target = self.target.as_mut().unwrap();
         let aspect = target.texture.width() as f32 / target.texture.height() as f32;
         let transform = mul(
             perspective(aspect),
@@ -383,14 +337,14 @@ impl Gpu {
             ),
         );
         self.queue
-            .write_buffer(&self.uniforms, 0, as_bytes(&transform));
+            .write_buffer(&self.uniforms, 0, as_bytes(&[transform]));
 
         let mut encoder = self.device.create_command_encoder(&Default::default());
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("cube"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.samples,
+                    view: &target.samples,
                     depth_slice: None,
                     resolve_target: Some(&target.view),
                     ops: wgpu::Operations {
@@ -404,7 +358,7 @@ impl Gpu {
                     },
                 })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &self.depth,
+                    view: &target.depth,
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
                         store: wgpu::StoreOp::Discard,
@@ -418,7 +372,117 @@ impl Gpu {
             pass.set_vertex_buffer(0, self.vertices.slice(..));
             pass.draw(0..36, 0..1);
         }
-        encoder
+        encoder.copy_texture_to_buffer(
+            target.texture.as_image_copy(),
+            wgpu::TexelCopyBufferInfo {
+                buffer: &target.readback,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(target.rows.padded),
+                    rows_per_image: None,
+                },
+            },
+            target.texture.size(),
+        );
+        let submission = self.queue.submit([encoder.finish()]);
+        let (tx, rx) = mpsc::channel();
+        target
+            .readback
+            .slice(..)
+            .map_async(wgpu::MapMode::Read, move |result| {
+                let _ = tx.send(result);
+            });
+        self.device
+            .poll(wgpu::PollType::Wait {
+                submission_index: Some(submission),
+                timeout: Some(Duration::from_secs(5)),
+            })
+            .map_err(|error| format!("GPU readback wait failed: {error}"))?;
+        rx.recv_timeout(Duration::from_secs(5))
+            .map_err(|error| format!("GPU readback callback failed: {error}"))?
+            .map_err(|error| format!("GPU readback mapping failed: {error}"))?;
+        {
+            let mapped = target
+                .readback
+                .slice(..)
+                .get_mapped_range()
+                .map_err(|error| format!("GPU mapped range failed: {error}"))?;
+            for (src, dst) in mapped
+                .chunks_exact(target.rows.padded as usize)
+                .zip(target.pixels.chunks_exact_mut(target.rows.packed as usize))
+            {
+                dst.copy_from_slice(&src[..target.rows.packed as usize]);
+            }
+        }
+        target.readback.unmap();
+        image.push(
+            VideoFormat::Bgra,
+            target.texture.width(),
+            target.texture.height(),
+            &target.pixels,
+            true,
+        );
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn readback_rows_cover_aligned_and_unaligned_widths() {
+        for (width, packed, padded) in [(1, 4, 256), (63, 252, 256), (64, 256, 256), (65, 260, 512)]
+        {
+            let rows = Rows::new(PixelSize { width, height: 3 }, &wgpu::Limits::default()).unwrap();
+            assert_eq!(rows.packed, packed);
+            assert_eq!(rows.padded, padded);
+            assert_eq!(rows.buffer_size, u64::from(padded) * 3);
+            assert_eq!(rows.pixel_len, packed as usize * 3);
+        }
+    }
+
+    #[test]
+    fn readback_rejects_invalid_dimensions_and_buffer_sizes() {
+        let mut limits = wgpu::Limits::default();
+        for (width, height) in [(0, 1), (1, 0), (limits.max_texture_dimension_2d + 1, 1)] {
+            assert!(Rows::new(PixelSize { width, height }, &limits).is_err());
+        }
+        limits.max_buffer_size = 511;
+        assert!(Rows::new(
+            PixelSize {
+                width: 65,
+                height: 1
+            },
+            &limits
+        )
+        .is_err());
+        limits.max_buffer_size = 512;
+        assert!(Rows::new(
+            PixelSize {
+                width: 65,
+                height: 1
+            },
+            &limits
+        )
+        .is_ok());
+        limits.max_texture_dimension_2d = u32::MAX;
+        assert!(Rows::new(
+            PixelSize {
+                width: u32::MAX,
+                height: 1
+            },
+            &limits
+        )
+        .is_err());
+        assert!(Rows::new(
+            PixelSize {
+                width: u32::MAX / 4,
+                height: 1
+            },
+            &limits
+        )
+        .is_err());
     }
 }
 
@@ -499,19 +563,7 @@ fn rotation_y(degrees: f32) -> Mat4 {
     ]
 }
 
-fn as_bytes<T: Copy>(values: &[T]) -> &[u8] {
-    // f32 arrays only: no padding.
+fn as_bytes<const N: usize>(values: &[[f32; N]]) -> &[u8] {
+    // Restrict this cast to initialized f32 arrays: no padding or invalid bytes.
     unsafe { std::slice::from_raw_parts(values.as_ptr().cast(), std::mem::size_of_val(values)) }
-}
-
-// wgpu's native futures are ready at once (or after a moment): poll until done.
-fn block_on<F: Future>(future: F) -> F::Output {
-    let mut future = std::pin::pin!(future);
-    let mut context = Context::from_waker(Waker::noop());
-    loop {
-        if let Poll::Ready(output) = future.as_mut().poll(&mut context) {
-            return output;
-        }
-        std::thread::yield_now();
-    }
 }

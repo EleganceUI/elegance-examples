@@ -1351,6 +1351,7 @@ name = "wgpu-image"
 version = "0.1.0"
 dependencies = [
  "elegance",
+ "pollster",
  "wgpu 30.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

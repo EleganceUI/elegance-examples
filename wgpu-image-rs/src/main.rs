@@ -1,75 +1,20 @@
-// WebGPU: a spinning cube drawn by wgpu on its own thread, shown in an Elegance window with
-// controls over it. Frames are rendered offscreen and read back into a VideoFeed on every
-// desktop platform. Drag the cube to turn it, scroll to zoom: an event handler
-// on the image sends the window's events to the drawing thread.
-
-use std::{process::ExitCode, rc::Rc, sync::mpsc::Sender};
+// Pure-Rust CPU-readback cube: drag to rotate, scroll to zoom.
 
 use elegance::prelude::*;
+use std::{process::ExitCode, rc::Rc};
 
 mod renderer;
+use renderer::{CubeRenderer, Input};
 
-const SIZE: u32 = 512; // pixels, square
-
-// The cube, filling the window, with a speed slider over it.
 struct Cube {
-    image: renderer::Image,
-    renderer: Rc<renderer::CubeRenderer>,
+    renderer: Rc<CubeRenderer>,
 }
 
-// Sends pointer drags and scrolling over the image to the renderer.
-struct CubeInput(Sender<renderer::Input>);
-
-impl EventModifier for CubeInput {
-    fn make_handler(&self) -> Box<dyn EventHandler> {
-        Box::new(CubeHandler {
-            input: self.0.clone(),
-            last: None,
+impl Cube {
+    fn new() -> Result<Self, Error> {
+        Ok(Self {
+            renderer: Rc::new(CubeRenderer::new(60.0)?),
         })
-    }
-}
-
-struct CubeHandler {
-    input: Sender<renderer::Input>,
-    last: Option<Point>, // while dragging
-}
-
-impl EventHandler for CubeHandler {
-    fn pointer(&mut self, event: &PointerEvent, _frame: Rect) -> EventResult {
-        use renderer::Input;
-        match event.kind {
-            PointerEventKind::Down if event.button == MouseButton::Left => {
-                self.last = Some(event.location);
-                let _ = self.input.send(Input::Grab(true));
-                EventResult::CONSUMED
-            }
-            PointerEventKind::Move => {
-                let Some(last) = self.last.replace(event.location) else {
-                    return EventResult::IGNORED;
-                };
-                let (dx, dy) = (event.location.x - last.x, event.location.y - last.y);
-                let _ = self.input.send(Input::Drag { dx, dy });
-                EventResult::CONSUMED
-            }
-            PointerEventKind::Up | PointerEventKind::Cancel if self.last.take().is_some() => {
-                let _ = self.input.send(Input::Grab(false));
-                EventResult::CONSUMED
-            }
-            _ => EventResult::IGNORED,
-        }
-    }
-
-    fn scroll(&mut self, event: &ScrollEvent) -> EventResult {
-        // In points, 48 a wheel notch, positive scrolling down: up zooms in.
-        let _ = self
-            .input
-            .send(renderer::Input::Zoom(1.1f32.powf(-event.dy / 48.0)));
-        EventResult::CONSUMED
-    }
-
-    // The whole image takes events, not only where something is drawn.
-    fn covers_frame(&self) -> bool {
-        true
     }
 }
 
@@ -77,21 +22,35 @@ impl Component for Cube {
     fn body(&self) -> impl IntoView {
         let speed = State::new(60.0f32);
         let renderer = self.renderer.clone();
-        let binding = Binding::new(
-            move || speed.get(),
-            move |value| {
-                speed.set(value);
-                renderer.set_speed(value);
-            },
-        );
 
+        effect(move || {
+            let _ = renderer.input.send(Input::Speed(speed.get()));
+        });
+
+        let pointer = self.renderer.input.clone();
+        let scroll = self.renderer.input.clone();
+        let resize = self.renderer.input.clone();
         elg! {
             ZStack(alignment: .bottom) {
-                { self.image.view() }
-                    .modifier(AsEvent(CubeInput(self.renderer.input())))
+                VideoFeedView(&self.renderer.image, mode: .fill)
+                    .on_sized(move |size| {
+                        let _ = resize.send(Input::Resize(size));
+                    })
+                    .on_drag(move |event| {
+                        let input = match event {
+                            DragEvent::Started => Input::Grab(true),
+                            DragEvent::Moved { delta } => Input::Drag { dx: delta.x, dy: delta.y },
+                            DragEvent::Ended => Input::Grab(false),
+                        };
+                        let _ = pointer.send(input);
+                    })
+                    .on_scroll(move |event| {
+                        let _ = scroll.send(Input::Zoom(1.1f32.powf(-event.dy / 48.0)));
+                        true
+                    })
                 HStack(spacing: 12) {
                     Text("Speed")
-                    Slider(binding, min: -360, max: 360).frame(width: 220)
+                    Slider($speed, min: -360, max: 360).frame(width: 220)
                     Text(move || format!("{}°/s", speed.get() as i32)).frame(width: 64)
                 }
                 .padding(12)
@@ -103,18 +62,10 @@ impl Component for Cube {
 }
 
 fn main() -> Result<ExitCode, Error> {
-    let app = App::new();
-    let image = renderer::Image::new(SIZE)?;
-    let renderer = Rc::new(renderer::CubeRenderer::new(image.clone(), 60.0));
-    let result = app
+    App::new()
         .window(
             WindowDesc::new("wgpu · Image (CPU copy)").size(640, 640),
-            Cube {
-                image,
-                renderer: renderer.clone(),
-            },
+            Cube::new()?,
         )
-        .run();
-    renderer.stop(); // before the app goes
-    result
+        .run()
 }

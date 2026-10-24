@@ -29,7 +29,6 @@ reload and previews.
 | network | [✓](network-cpp) | | A request as reactive state, and a lazy list of web images |
 | recorder | [✓](recorder-cpp) | | Voice memos with a level meter, and a camera preview |
 | desktop | [✓](desktop-cpp) | | File dialogs, notifications, a tray icon, dropped files |
-| opengl | [✓](opengl-cpp) | | OpenGL drawing into a GpuImage (Windows) |
 | wgpu-image | | [✓](wgpu-image-rs) | A wgpu cube read back through CPU memory into a VideoFeed |
 | wgpu-direct | | [✓](wgpu-direct-rs) | The same cube rendered directly into a shared GPU image, without CPU pixel readback |
 | login | [✓](login-cpp) | | A modern sign-in screen with a QR code |

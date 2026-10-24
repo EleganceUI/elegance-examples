@@ -11,3 +11,4 @@ publish = false
 [dependencies]
 elegance = { git = "https://github.com/EleganceUI/elegance-rs" }
 wgpu = "30"
+pollster = "0.4"

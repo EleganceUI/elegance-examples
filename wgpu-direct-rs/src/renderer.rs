@@ -4,7 +4,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use elegance::{Error, ErrorKind, ExternalGpuImage, PixelSize};
+use elegance::{Error, ErrorKind, GpuImage, PixelSize};
 use elegance_wgpu::{
     wgpu, Bridge, Config, Error as BridgeError, GpuImageOrigin, RenderAttachments,
 };
@@ -24,7 +24,7 @@ pub enum Input {
 }
 
 pub struct CubeRenderer {
-    pub image: ExternalGpuImage,
+    pub image: GpuImage,
     pub input: mpsc::Sender<Input>,
 }
 
