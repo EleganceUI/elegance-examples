@@ -1,6 +1,5 @@
 // Pure-Rust, backend-neutral direct GPU cube. Drag to turn, scroll to zoom,
-// and change the spin with the slider. --smoke publishes 12 frames, then
-// clears and verifies retirement while the native renderer is still alive.
+// and change the spin with the slider.
 
 use std::{process::ExitCode, rc::Rc};
 

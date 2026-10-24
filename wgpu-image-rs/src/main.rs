@@ -3,7 +3,7 @@
 // desktop platform. Drag the cube to turn it, scroll to zoom: an event handler
 // on the image sends the window's events to the drawing thread.
 
-use std::process::ExitCode;
+use std::{process::ExitCode, rc::Rc, sync::mpsc::Sender};
 
 use elegance::prelude::*;
 
@@ -14,11 +14,11 @@ const SIZE: u32 = 512; // pixels, square
 // The cube, filling the window, with a speed slider over it.
 struct Cube {
     image: renderer::Image,
-    renderer: std::rc::Rc<renderer::CubeRenderer>,
+    renderer: Rc<renderer::CubeRenderer>,
 }
 
 // Sends pointer drags and scrolling over the image to the renderer.
-struct CubeInput(std::sync::mpsc::Sender<renderer::Input>);
+struct CubeInput(Sender<renderer::Input>);
 
 impl EventModifier for CubeInput {
     fn make_handler(&self) -> Box<dyn EventHandler> {
@@ -30,7 +30,7 @@ impl EventModifier for CubeInput {
 }
 
 struct CubeHandler {
-    input: std::sync::mpsc::Sender<renderer::Input>,
+    input: Sender<renderer::Input>,
     last: Option<Point>, // while dragging
 }
 
@@ -84,6 +84,7 @@ impl Component for Cube {
                 renderer.set_speed(value);
             },
         );
+
         elg! {
             ZStack(alignment: .bottom) {
                 { self.image.view() }
@@ -104,7 +105,7 @@ impl Component for Cube {
 fn main() -> Result<ExitCode, Error> {
     let app = App::new();
     let image = renderer::Image::new(SIZE)?;
-    let renderer = std::rc::Rc::new(renderer::CubeRenderer::new(image.clone(), 60.0));
+    let renderer = Rc::new(renderer::CubeRenderer::new(image.clone(), 60.0));
     let result = app
         .window(
             WindowDesc::new("wgpu · Image (CPU copy)").size(640, 640),

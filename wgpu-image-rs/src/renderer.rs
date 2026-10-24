@@ -14,7 +14,6 @@ use wgpu::util::DeviceExt;
 
 const SAMPLES: u32 = 4;
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth24Plus;
-
 const COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 
 /// The platform's presentation path, shared by the UI and render thread.
