@@ -30,6 +30,7 @@ reload and previews.
 | recorder | [✓](recorder-cpp) | | Voice memos with a level meter, and a camera preview |
 | desktop | [✓](desktop-cpp) | | File dialogs, notifications, a tray icon, dropped files |
 | opengl | [✓](opengl-cpp) | | OpenGL drawing into a GpuImage (Windows) |
+| webgpu | | [✓](webgpu-rs) | wgpu (WebGPU) drawing into a GpuImage (Windows) |
 | login | [✓](login-cpp) | | A modern sign-in screen with a QR code |
 | music | [✓](music-cpp) | | A desktop music player |
 | shell | [✓](shell-cpp) | | A desktop environment: windows, a dock, a launcher, sample apps |

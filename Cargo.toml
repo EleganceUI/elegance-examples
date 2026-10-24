@@ -13,4 +13,5 @@ members = [
     "popover-rs",
     "split-view-rs",
     "preview-rs",
+    "webgpu-rs",
 ]
