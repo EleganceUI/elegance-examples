@@ -21,7 +21,7 @@ impl Cube {
 impl Component for Cube {
     fn body(&self) -> impl IntoView {
         let speed = State::new(60.0f32);
-        let last = State::new(None::<Point>);
+
         // The mounted effect owns the renderer, not just its input sender: component
         // descriptions can be dropped after body() builds their element tree.
         let renderer = self.renderer.clone();
@@ -34,27 +34,13 @@ impl Component for Cube {
         elg! {
             ZStack(alignment: .bottom) {
                 ExternalGpuImageView(&self.renderer.image, mode: .fill)
-                    .on_pointer_event(move |event| {
-                        match event.kind {
-                            PointerEventKind::Down if event.button == MouseButton::Left => {
-                                last.set(Some(event.location));
-                                let _ = pointer.send(Input::Grab(true));
-                            }
-                            PointerEventKind::Move => {
-                                let Some(previous) = last.get() else { return false; };
-                                last.set(Some(event.location));
-                                let _ = pointer.send(Input::Drag {
-                                    dx: event.location.x - previous.x,
-                                    dy: event.location.y - previous.y,
-                                });
-                            }
-                            PointerEventKind::Up | PointerEventKind::Cancel if last.get().is_some() => {
-                                last.set(None);
-                                let _ = pointer.send(Input::Grab(false));
-                            }
-                            _ => return false,
-                        }
-                        true
+                    .on_drag(move |event| {
+                        let input = match event {
+                            DragEvent::Started => Input::Grab(true),
+                            DragEvent::Moved { delta } => Input::Drag { dx: delta.x, dy: delta.y },
+                            DragEvent::Ended => Input::Grab(false),
+                        };
+                        let _ = pointer.send(input);
                     })
                     .on_scroll(move |event| {
                         let _ = scroll.send(Input::Zoom(1.1f32.powf(-event.dy / 48.0)));
