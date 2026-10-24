@@ -1,33 +1,39 @@
-// The cube resolves directly into a bridge-owned shared GPU image. Only the bridge
-// submits work; target handles and commands never leave its render closure.
+// The cube resolves directly into a bridge-owned shared GPU image.
 
-use std::future::Future;
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{mpsc, Arc, Mutex};
-use std::task::{Context, Poll, Waker};
-use std::thread::{self, JoinHandle};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{mpsc, Arc};
 
-use elegance_wgpu::{wgpu, Bridge, Config, Error as BridgeError, GpuImageOrigin};
+use std::thread::{self};
 use std::time::{Duration, Instant};
 
-use elegance::ExternalGpuImage;
+use elegance::{Error, ErrorKind, ExternalGpuImage};
+use elegance_wgpu::{
+    wgpu, Bridge, Config, Error as BridgeError, GpuImageOrigin, RenderPassOptions,
+};
+use pollster::block_on;
 use wgpu::util::DeviceExt;
 
 const SAMPLES: u32 = 4;
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth24Plus;
 const COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 
-/// The platform's presentation path, shared by the UI and render thread.
-#[derive(Clone)]
-pub struct Image {
-    image: ExternalGpuImage,
+pub enum Input {
+    Speed(f32),
+    Grab(bool),
+    Drag { dx: f32, dy: f32 },
+    Zoom(f32),
 }
 
-impl Image {
-    pub fn new(size: u32) -> Result<(Self, Bridge), Box<dyn std::error::Error>> {
+pub struct CubeRenderer {
+    pub image: ExternalGpuImage,
+    pub input: mpsc::Sender<Input>,
+}
+
+impl CubeRenderer {
+    pub fn new(size: u32, speed: f32) -> Result<Self, Error> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
-        let adapter = block_on(instance.request_adapter(&Default::default()))?;
+        let adapter = block_on(instance.request_adapter(&Default::default()))
+            .map_err(|error| Error::new(ErrorKind::Gpu, error.to_string()))?;
         let bridge = block_on(Bridge::new(
             &adapter,
             Config {
@@ -37,117 +43,37 @@ impl Image {
                 format: COLOR_FORMAT,
                 max_frames: 4,
             },
-        ))?;
-        Ok((
-            Self {
-                image: bridge.image().clone(),
-            },
-            bridge,
         ))
-    }
+        .map_err(|error| Error::new(ErrorKind::Gpu, error.to_string()))?;
 
-    pub fn view(&self) -> impl elegance::IntoView {
-        elegance::ExternalGpuImageView::new(&self.image).mode(elegance::ContentMode::Fill)
-    }
-}
-
-/// What the window's events do to the cube, sent to its thread.
-pub enum Input {
-    Grab(bool),
-    Drag { dx: f32, dy: f32 },
-    Zoom(f32),
-}
-
-/// Draws the cube into `image` until stopped or dropped.
-pub struct CubeRenderer {
-    speed: Arc<AtomicU32>, // degrees per second, as f32 bits
-    input: Sender<Input>,
-    running: Arc<AtomicBool>,
-    thread: Mutex<Option<JoinHandle<Result<(), String>>>>,
-}
-
-impl CubeRenderer {
-    pub fn new(bridge: Bridge, size: u32, speed: f32) -> Self {
-        let speed = Arc::new(AtomicU32::new(speed.to_bits()));
+        let image = bridge.image().clone();
         let running = Arc::new(AtomicBool::new(true));
         let (input, inputs) = mpsc::channel();
-        let thread = thread::spawn({
-            let (speed, running) = (speed.clone(), running.clone());
+        thread::spawn({
+            let running = running.clone();
             move || {
-                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    run(bridge, size, &speed, &inputs, &running)
-                }))
-                .unwrap_or_else(|_| Err("cube producer panicked".into()));
-                if let Err(message) = &result {
-                    eprintln!("wgpu-direct: {message}");
+                if let Err(error) = run(bridge, size, speed, inputs, &running) {
+                    eprintln!("wgpu-direct: {error}");
                 }
-                result
             }
         });
 
-        Self {
-            speed,
-            input,
-            running,
-            thread: Mutex::new(Some(thread)),
-        }
-    }
-
-    /// Degrees per second.
-    pub fn set_speed(&self, speed: f32) {
-        self.speed.store(speed.to_bits(), Ordering::Relaxed);
-    }
-
-    /// Where to send the window's events (from any thread).
-    pub fn input(&self) -> Sender<Input> {
-        self.input.clone()
-    }
-
-    /// Bound shutdown even if native rendering has already torn down. Never join
-    /// an unfinished producer: retirement may depend on the UI/render thread.
-    pub fn stop(&self) -> Result<(), String> {
-        self.running.store(false, Ordering::Release);
-        let Some(thread) = self
-            .thread
-            .lock()
-            .map_err(|_| "producer lock poisoned")?
-            .take()
-        else {
-            return Ok(());
-        };
-
-        let deadline = Instant::now() + Duration::from_secs(6);
-        while !thread.is_finished() && Instant::now() < deadline {
-            thread::sleep(Duration::from_millis(2));
-        }
-
-        if !thread.is_finished() {
-            // Dropping a JoinHandle detaches it, unlike joining after UI teardown.
-            return Err("producer shutdown timed out; unfinished thread detached".into());
-        }
-        thread
-            .join()
-            .map_err(|_| "cube producer panicked".to_string())?
+        Ok(Self { image, input })
     }
 }
 
-impl Drop for CubeRenderer {
-    fn drop(&mut self) {
-        self.running.store(false, Ordering::Release);
-    }
-}
-
-// Where the cube is turned to, and how far away it is.
 struct Pose {
-    yaw: f32,   // degrees
-    pitch: f32, // degrees
+    yaw: f32,
+    pitch: f32,
     distance: f32,
+    speed: f32,
     held: bool,
 }
 
 impl Pose {
     fn apply(&mut self, input: Input) {
         match input {
+            Input::Speed(speed) => self.speed = speed,
             Input::Grab(held) => self.held = held,
             Input::Drag { dx, dy } => {
                 self.yaw += dx * 0.5;
@@ -161,36 +87,8 @@ impl Pose {
 fn run(
     mut bridge: Bridge,
     size: u32,
-    speed: &AtomicU32,
-    inputs: &Receiver<Input>,
-    running: &AtomicBool,
-) -> Result<(), String> {
-    let result = produce(&mut bridge, size, speed, inputs, running);
-
-    bridge.clear();
-    let deadline = Instant::now() + Duration::from_secs(5);
-    while bridge.in_flight() != 0 && Instant::now() < deadline {
-        thread::sleep(Duration::from_millis(2));
-    }
-
-    let remaining = bridge.in_flight();
-    let quarantined = bridge.quarantined();
-    eprintln!("wgpu-direct: in_flight={remaining}, quarantined={quarantined}");
-    if remaining != 0 || quarantined != 0 {
-        return Err(format!(
-            "{}retirement failed: in_flight={remaining}, quarantined={quarantined}",
-            result.err().map(|e| format!("{e}; ")).unwrap_or_default(),
-        ));
-    }
-
-    result
-}
-
-fn produce(
-    bridge: &mut Bridge,
-    size: u32,
-    speed: &AtomicU32,
-    inputs: &Receiver<Input>,
+    speed: f32,
+    inputs: mpsc::Receiver<Input>,
     running: &AtomicBool,
 ) -> Result<(), String> {
     let gpu = Gpu::new(bridge.device().clone(), size, size);
@@ -198,50 +96,45 @@ fn produce(
         yaw: 0.0,
         pitch: 0.0,
         distance: 6.0,
+        speed,
         held: false,
     };
+    let mut last = Instant::now();
+    let mut progress = last;
 
-    let start = Instant::now();
-    let mut last = start;
-    let mut progress = start;
-    let mut accepted = 0;
-    while running.load(Ordering::Acquire) {
-        let now = Instant::now();
-        if now.duration_since(progress) >= Duration::from_secs(10) {
-            return Err(format!(
-                "publication stalled for 10s after {accepted} successful frames"
-            ));
-        }
-
-        while let Ok(input) = inputs.try_recv() {
-            pose.apply(input);
-        }
-
-        if !pose.held {
-            let turn = f32::from_bits(speed.load(Ordering::Relaxed)) * (now - last).as_secs_f32();
-            pose.yaw += turn;
-            pose.pitch += turn * 0.7;
-        }
-
-        last = now;
-        match gpu.draw(bridge, &pose) {
-            Ok(()) => {
-                accepted += 1;
-                progress = Instant::now();
+    let result = {
+        while running.load(Ordering::Acquire) {
+            let now = Instant::now();
+            if now.duration_since(progress) >= Duration::from_secs(10) {
+                return Err("no GPU frame could be published for 10 seconds".to_string());
             }
-            // Busy is backpressure; Publish(2) is the native renderer not yet
-            // having a device. Both retry only until the progress deadline.
-            Err(BridgeError::Busy | BridgeError::Publish(2)) => {}
-            Err(error) => return Err(format!("cube publication failed: {error}")),
+            for input in inputs.try_iter() {
+                pose.apply(input);
+            }
+            if !pose.held {
+                let turn = pose.speed * (now - last).as_secs_f32();
+                pose.yaw += turn;
+                pose.pitch += turn * 0.7;
+            }
+
+            last = now;
+            match gpu.draw(&mut bridge, &pose) {
+                Ok(()) => progress = Instant::now(),
+                // Backpressure or the UI renderer's device is not ready yet.
+                Err(BridgeError::Busy | BridgeError::Publish(2)) => {}
+                Err(error) => return Err(format!("cube publication failed: {error}")),
+            }
+
+            thread::sleep(
+                (now + Duration::from_micros(16_667)).saturating_duration_since(Instant::now()),
+            );
         }
 
-        // Producer throttle, NOT VSync or a presentation/display callback.
-        thread::sleep(
-            (now + Duration::from_micros(16_667)).saturating_duration_since(Instant::now()),
-        );
-    }
+        Ok(())
+    };
 
-    Ok(())
+    bridge.clear();
+    result
 }
 
 struct Gpu {
@@ -256,29 +149,10 @@ struct Gpu {
 impl Gpu {
     fn new(device: wgpu::Device, width: u32, height: u32) -> Self {
         let shader = device.create_shader_module(wgpu::include_wgsl!("cube.wgsl"));
-        let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("cube"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            }],
-        });
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("cube"),
-            layout: Some(
-                &device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: Some("cube"),
-                    bind_group_layouts: &[Some(&layout)],
-                    immediate_size: 0,
-                }),
-            ),
+            layout: None,
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
@@ -327,7 +201,7 @@ impl Gpu {
         });
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("cube"),
-            layout: &layout,
+            layout: &pipeline.get_bind_group_layout(0),
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: uniforms.as_entire_binding(),
@@ -366,65 +240,43 @@ impl Gpu {
     }
 
     fn draw(&self, bridge: &mut Bridge, pose: &Pose) -> Result<(), BridgeError> {
-        // SAFETY: the destination view is local to this closure, the full MSAA
-        // attachment is cleared and resolved with opaque, sRGB-encoded colors,
-        // and all commands stay in the bridge encoder. No target alias escapes,
-        // no queue is accessed, and nothing writes the target after publication.
-        unsafe {
-            bridge.render(|device, encoder, target| {
-                let target_view = target.create_view(&Default::default());
-                let aspect = target.width() as f32 / target.height() as f32;
-                let transform = mul(
-                    perspective(aspect),
-                    mul(
-                        translation(0.0, 0.0, -pose.distance),
-                        mul(rotation_x(pose.pitch), rotation_y(pose.yaw)),
-                    ),
-                );
-
-                // create_buffer_init maps only this small CPU-to-GPU staging buffer.
-                // Queue access and submission remain exclusively owned by the bridge.
-                let staging = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("cube uniform staging"),
-                    contents: as_bytes(&[transform]),
-                    usage: wgpu::BufferUsages::COPY_SRC,
-                });
-                encoder.copy_buffer_to_buffer(&staging, 0, &self.uniforms, 0, 64);
-                {
-                    let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("cube"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &self.samples,
-                            depth_slice: None,
-                            resolve_target: Some(&target_view),
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color {
-                                    r: 0.07,
-                                    g: 0.08,
-                                    b: 0.11,
-                                    a: 1.0,
-                                }),
-                                store: wgpu::StoreOp::Discard,
-                            },
-                        })],
-                        depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                            view: &self.depth,
-                            depth_ops: Some(wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(1.0),
-                                store: wgpu::StoreOp::Discard,
-                            }),
-                            stencil_ops: None,
+        bridge.render(|frame| {
+            let size = frame.size();
+            let transform = mul(
+                perspective(size.width as f32 / size.height as f32),
+                mul(
+                    translation(0.0, 0.0, -pose.distance),
+                    mul(rotation_x(pose.pitch), rotation_y(pose.yaw)),
+                ),
+            );
+            frame.write_buffer(&self.uniforms, 0, as_bytes(&[transform]));
+            frame.render_pass(
+                RenderPassOptions {
+                    label: Some("cube"),
+                    clear: wgpu::Color {
+                        r: 0.07,
+                        g: 0.08,
+                        b: 0.11,
+                        a: 1.0,
+                    },
+                    multisample: Some(&self.samples),
+                    depth_stencil: Some(wgpu::RenderPassDepthStencilAttachment {
+                        view: &self.depth,
+                        depth_ops: Some(wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(1.0),
+                            store: wgpu::StoreOp::Discard,
                         }),
-                        ..Default::default()
-                    });
-
+                        stencil_ops: None,
+                    }),
+                },
+                |pass| {
                     pass.set_pipeline(&self.pipeline);
                     pass.set_bind_group(0, &self.bind_group, &[]);
                     pass.set_vertex_buffer(0, self.vertices.slice(..));
                     pass.draw(0..36, 0..1);
-                }
-            })
-        }
+                },
+            );
+        })
     }
 }
 
@@ -508,16 +360,4 @@ fn rotation_y(degrees: f32) -> Mat4 {
 fn as_bytes<const N: usize>(values: &[[f32; N]]) -> &[u8] {
     // Restrict this cast to initialized f32 arrays: no padding or invalid bytes.
     unsafe { std::slice::from_raw_parts(values.as_ptr().cast(), std::mem::size_of_val(values)) }
-}
-
-// wgpu's native futures are ready at once (or after a moment): poll until done.
-fn block_on<F: Future>(future: F) -> F::Output {
-    let mut future = std::pin::pin!(future);
-    let mut context = Context::from_waker(Waker::noop());
-    loop {
-        if let Poll::Ready(output) = future.as_mut().poll(&mut context) {
-            return output;
-        }
-        thread::sleep(Duration::from_millis(1));
-    }
 }

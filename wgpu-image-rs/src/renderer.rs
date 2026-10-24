@@ -67,6 +67,7 @@ impl CubeRenderer {
                 }
             }
         });
+
         Self {
             speed,
             input,

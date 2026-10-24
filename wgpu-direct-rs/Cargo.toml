@@ -11,3 +11,4 @@ publish = false
 [dependencies]
 elegance = { path = "../../elegance-rs/elegance" }
 elegance-wgpu = { path = "../../elegance-rs/elegance-wgpu" }
+pollster = "0.4"

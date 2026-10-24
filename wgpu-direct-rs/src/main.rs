@@ -1,95 +1,68 @@
-// Pure-Rust, backend-neutral direct GPU cube. Drag to turn, scroll to zoom,
-// and change the spin with the slider.
-
-use std::{process::ExitCode, rc::Rc};
+// Pure-Rust direct GPU cube: drag to rotate, scroll to zoom.
 
 use elegance::prelude::*;
+use std::{process::ExitCode, rc::Rc};
 
 mod renderer;
+use renderer::{CubeRenderer, Input};
 
-const SIZE: u32 = 512; // pixels, square
-
-// The cube, filling the window, with a speed slider over it.
 struct Cube {
-    image: renderer::Image,
-    renderer: Rc<renderer::CubeRenderer>,
+    renderer: Rc<CubeRenderer>,
 }
 
-// Sends pointer drags and scrolling over the image to the renderer.
-struct CubeInput(std::sync::mpsc::Sender<renderer::Input>);
-
-impl EventModifier for CubeInput {
-    fn make_handler(&self) -> Box<dyn EventHandler> {
-        Box::new(CubeHandler {
-            input: self.0.clone(),
-            last: None,
+impl Cube {
+    fn new() -> Result<Self, Error> {
+        Ok(Self {
+            renderer: Rc::new(CubeRenderer::new(512, 60.0)?),
         })
-    }
-}
-
-struct CubeHandler {
-    input: std::sync::mpsc::Sender<renderer::Input>,
-    last: Option<Point>, // while dragging
-}
-
-impl EventHandler for CubeHandler {
-    fn pointer(&mut self, event: &PointerEvent, _frame: Rect) -> EventResult {
-        use renderer::Input;
-        match event.kind {
-            PointerEventKind::Down if event.button == MouseButton::Left => {
-                self.last = Some(event.location);
-                let _ = self.input.send(Input::Grab(true));
-                EventResult::CONSUMED
-            }
-            PointerEventKind::Move => {
-                let Some(last) = self.last.replace(event.location) else {
-                    return EventResult::IGNORED;
-                };
-                let (dx, dy) = (event.location.x - last.x, event.location.y - last.y);
-                let _ = self.input.send(Input::Drag { dx, dy });
-                EventResult::CONSUMED
-            }
-            PointerEventKind::Up | PointerEventKind::Cancel if self.last.take().is_some() => {
-                let _ = self.input.send(Input::Grab(false));
-                EventResult::CONSUMED
-            }
-            _ => EventResult::IGNORED,
-        }
-    }
-
-    fn scroll(&mut self, event: &ScrollEvent) -> EventResult {
-        // In points, 48 a wheel notch, positive scrolling down: up zooms in.
-        let _ = self
-            .input
-            .send(renderer::Input::Zoom(1.1f32.powf(-event.dy / 48.0)));
-        EventResult::CONSUMED
-    }
-
-    // The whole image takes events, not only where something is drawn.
-    fn covers_frame(&self) -> bool {
-        true
     }
 }
 
 impl Component for Cube {
     fn body(&self) -> impl IntoView {
         let speed = State::new(60.0f32);
+        let last = State::new(None::<Point>);
+        // The mounted effect owns the renderer, not just its input sender: component
+        // descriptions can be dropped after body() builds their element tree.
         let renderer = self.renderer.clone();
-        let binding = Binding::new(
-            move || speed.get(),
-            move |value| {
-                speed.set(value);
-                renderer.set_speed(value);
-            },
-        );
+        effect(move || {
+            let _ = renderer.input.send(Input::Speed(speed.get()));
+        });
 
+        let pointer = self.renderer.input.clone();
+        let scroll = self.renderer.input.clone();
         elg! {
             ZStack(alignment: .bottom) {
-                { self.image.view() }
-                    .modifier(AsEvent(CubeInput(self.renderer.input())))
+                ExternalGpuImageView(&self.renderer.image, mode: .fill)
+                    .on_pointer_event(move |event| {
+                        match event.kind {
+                            PointerEventKind::Down if event.button == MouseButton::Left => {
+                                last.set(Some(event.location));
+                                let _ = pointer.send(Input::Grab(true));
+                            }
+                            PointerEventKind::Move => {
+                                let Some(previous) = last.get() else { return false; };
+                                last.set(Some(event.location));
+                                let _ = pointer.send(Input::Drag {
+                                    dx: event.location.x - previous.x,
+                                    dy: event.location.y - previous.y,
+                                });
+                            }
+                            PointerEventKind::Up | PointerEventKind::Cancel if last.get().is_some() => {
+                                last.set(None);
+                                let _ = pointer.send(Input::Grab(false));
+                            }
+                            _ => return false,
+                        }
+                        true
+                    })
+                    .on_scroll(move |event| {
+                        let _ = scroll.send(Input::Zoom(1.1f32.powf(-event.dy / 48.0)));
+                        true
+                    })
                 HStack(spacing: 12) {
                     Text("Speed")
-                    Slider(binding, min: -360, max: 360).frame(width: 220)
+                    Slider($speed, min: -360, max: 360).frame(width: 220)
                     Text(move || format!("{}°/s", speed.get() as i32)).frame(width: 64)
                 }
                 .padding(12)
@@ -100,25 +73,11 @@ impl Component for Cube {
     }
 }
 
-fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
-    // Bridge startup is fallible and happens before creating the UI. The UI
-    // retains only a clone of its image; the producer owns the bridge itself.
-    let (image, bridge) = renderer::Image::new(SIZE)?;
-    let app = App::new();
-
-    let renderer = Rc::new(renderer::CubeRenderer::new(bridge, SIZE, 60.0));
-    let result = app
+fn main() -> Result<ExitCode, Error> {
+    App::new()
         .window(
             WindowDesc::new("WebGPU · Direct GPU").size(640, 640),
-            Cube {
-                image,
-                renderer: renderer.clone(),
-            },
+            Cube::new()?,
         )
-        .run();
-
-    let producer_result = renderer.stop();
-    let exit = result?;
-    producer_result?;
-    Ok(exit)
+        .run()
 }
