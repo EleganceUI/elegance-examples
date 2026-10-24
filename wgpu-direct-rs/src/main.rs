@@ -21,10 +21,10 @@ impl Cube {
 impl Component for Cube {
     fn body(&self) -> impl IntoView {
         let speed = State::new(60.0f32);
-
         // The mounted effect owns the renderer, not just its input sender: component
         // descriptions can be dropped after body() builds their element tree.
         let renderer = self.renderer.clone();
+
         effect(move || {
             let _ = renderer.input.send(Input::Speed(speed.get()));
         });
