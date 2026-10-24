@@ -1,7 +1,3 @@
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
-// If a copy of the MPL was not distributed with this file, You can obtain one at
-// https://mozilla.org/MPL/2.0/.
-
 // Layout: stacks, spacers, frames, overlays, and a custom layout (a flow of tags that wraps
 // to the next row when it runs out of width).
 

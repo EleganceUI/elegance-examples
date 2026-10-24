@@ -1,7 +1,3 @@
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
-// If a copy of the MPL was not distributed with this file, You can obtain one at
-// https://mozilla.org/MPL/2.0/.
-
 // Styling: a custom theme, light and dark mode, a ButtonStyle, a reusable ViewModifier, and a
 // custom environment value read by a component.
 

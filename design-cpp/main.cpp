@@ -1,7 +1,3 @@
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
-// If a copy of the MPL was not distributed with this file, You can obtain one at
-// https://mozilla.org/MPL/2.0/.
-
 // Design: a Figma-style editor on an infinite canvas. Frames, rectangles, ellipses, lines and
 // text; selecting, moving with snapping, resizing, panning and zooming; layers; a properties
 // inspector with a color picker; alignment, arrangement, copy and paste, undo and redo.

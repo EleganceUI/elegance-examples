@@ -1,7 +1,3 @@
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
-// If a copy of the MPL was not distributed with this file, You can obtain one at
-// https://mozilla.org/MPL/2.0/.
-
 // Title bar: a window without the system frame. The app draws its own title bar (dragging it
 // moves the window), window controls, and a rounded, translucent panel the desktop shows
 // through.

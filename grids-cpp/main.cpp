@@ -1,7 +1,3 @@
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
-// If a copy of the MPL was not distributed with this file, You can obtain one at
-// https://mozilla.org/MPL/2.0/.
-
 // Grids: a VGrid of cards that fits as many columns as the window allows, and a Grid table with
 // columns sized to their content, a spanning cell, and a full-width divider.
 

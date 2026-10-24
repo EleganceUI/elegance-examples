@@ -1,7 +1,3 @@
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
-// If a copy of the MPL was not distributed with this file, You can obtain one at
-// https://mozilla.org/MPL/2.0/.
-
 // Music: a desktop music player in the style of the big streaming apps. Nothing actually plays,
 // but everything behaves as if it did: the position moves, tracks advance, shuffle and repeat
 // work, and the queue, lyrics, love, and playlists all respond. Uses only the public API.

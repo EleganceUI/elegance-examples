@@ -1,7 +1,3 @@
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
-// If a copy of the MPL was not distributed with this file, You can obtain one at
-// https://mozilla.org/MPL/2.0/.
-
 // Login example: a modern web-style sign-in screen. A credentials form on the left, a QR code
 // to scan with a phone on the right, a gradient backdrop, and a success screen after logging in.
 // Uses only the public API.

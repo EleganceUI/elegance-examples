@@ -1,7 +1,3 @@
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
-// If a copy of the MPL was not distributed with this file, You can obtain one at
-// https://mozilla.org/MPL/2.0/.
-
 // Navigation: a notes app's layout. NavigationSplitView with a sidebar that hides, a
 // NavigationStack driven by a path (a folder's notes, then a note), and a VSplitView.
 

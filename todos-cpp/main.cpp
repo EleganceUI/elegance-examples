@@ -1,7 +1,3 @@
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
-// If a copy of the MPL was not distributed with this file, You can obtain one at
-// https://mozilla.org/MPL/2.0/.
-
 // Todos: a list in state. TextField and Binding, ForEach keyed by id, If, Computed, and
 // animated insertions and removals.
 

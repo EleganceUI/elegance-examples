@@ -92,4 +92,5 @@ Copy a folder (`hello-cpp` or `hello-rs`, say) wherever you like, and rename the
 
 ## License
 
-[MPL-2.0](LICENSE), like Elegance.
+[MIT](LICENSE), so you can copy the examples into your own apps freely. (Elegance itself is
+MPL-2.0.)

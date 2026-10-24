@@ -1,7 +1,3 @@
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
-// If a copy of the MPL was not distributed with this file, You can obtain one at
-// https://mozilla.org/MPL/2.0/.
-
 // OpenGL: a spinning cube drawn by OpenGL on its own thread, shown in an Elegance window with
 // controls over it. OpenGL draws straight into a GpuImage's shared textures (no copies) and
 // signals its shared fence when each frame is done. SDL (which Elegance already uses) provides
