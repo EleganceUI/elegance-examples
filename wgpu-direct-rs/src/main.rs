@@ -18,24 +18,6 @@ impl Cube {
     }
 }
 
-#[component]
-fn InfoCard(
-    title: String,
-    #[prop(default = HorizontalAlignment::Leading)] alignment: elegance::HorizontalAlignment,
-    #[prop(default = Weight::Regular)] weight: elegance::Weight,
-) -> impl IntoView {
-    elg! {
-        VStack(spacing: 8, alignment: alignment) {
-            Text(title.clone())
-                .font_weight(weight)
-
-            Text("This is a custom Rust component.")
-                .foreground_style(.secondary)
-        }
-        .padding(16)
-    }
-}
-
 impl Component for Cube {
     fn body(&self) -> impl IntoView {
         let speed = State::new(60.0f32);
