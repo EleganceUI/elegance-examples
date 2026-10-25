@@ -50,8 +50,8 @@ impl Component for Cube {
         let resize = self.renderer.input.clone();
 
         elg! {
-            VStack {
-                Text("Hello, World", padding: 24.)
+            VStack(spacing: 12) {
+                Text("Hello, World")
                 ZStack(alignment: .bottom) {
                     GpuImageView(&self.renderer.image, mode: .fill)
                         .on_sized(move |size| {
@@ -88,9 +88,8 @@ impl Component for Cube {
                     .padding(12)
                     .background(Material::REGULAR)
                     .corner_radius(12.)
-                    .padding(24)
-                }.padding(12.)
-            }
+                }
+            }.padding(12)
         }
     }
 }
