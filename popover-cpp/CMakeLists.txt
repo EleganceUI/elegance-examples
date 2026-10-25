@@ -34,6 +34,7 @@ add_executable(popover
         main.cpp
 )
 target_link_libraries(popover PRIVATE Elegance::Elegance)
+elegance_application(popover)
 
 if (MSVC)
     target_compile_options(popover PRIVATE /W4 /permissive- /utf-8)

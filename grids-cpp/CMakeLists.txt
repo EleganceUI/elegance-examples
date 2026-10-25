@@ -34,6 +34,7 @@ add_executable(grids
         main.cpp
 )
 target_link_libraries(grids PRIVATE Elegance::Elegance)
+elegance_application(grids)
 
 if (MSVC)
     target_compile_options(grids PRIVATE /W4 /permissive- /utf-8)

@@ -38,6 +38,7 @@ add_executable(music
         ui.cpp
 )
 target_link_libraries(music PRIVATE Elegance::Elegance)
+elegance_application(music)
 
 if (MSVC)
     target_compile_options(music PRIVATE /W4 /permissive- /utf-8)

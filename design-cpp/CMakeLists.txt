@@ -37,6 +37,7 @@ add_executable(design
         panels.cpp
 )
 target_link_libraries(design PRIVATE Elegance::Elegance)
+elegance_application(design)
 
 if (MSVC)
     target_compile_options(design PRIVATE /W4 /permissive- /utf-8)

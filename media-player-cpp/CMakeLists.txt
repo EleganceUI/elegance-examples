@@ -34,6 +34,7 @@ add_executable(media-player
         main.cpp
 )
 target_link_libraries(media-player PRIVATE Elegance::Elegance)
+elegance_application(media-player)
 
 if (MSVC)
     target_compile_options(media-player PRIVATE /W4 /permissive- /utf-8)

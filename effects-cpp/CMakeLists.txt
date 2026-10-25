@@ -34,6 +34,7 @@ add_executable(effects
         main.cpp
 )
 target_link_libraries(effects PRIVATE Elegance::Elegance)
+elegance_application(effects)
 
 if (MSVC)
     target_compile_options(effects PRIVATE /W4 /permissive- /utf-8)

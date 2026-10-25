@@ -37,6 +37,7 @@ add_executable(hello
 )
 target_include_directories(hello PRIVATE src)
 target_link_libraries(hello PRIVATE Elegance::Elegance)
+elegance_application(hello)
 
 if (MSVC)
     target_compile_options(hello PRIVATE /W4 /permissive- /utf-8)

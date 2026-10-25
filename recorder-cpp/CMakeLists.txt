@@ -34,6 +34,7 @@ add_executable(recorder
         main.cpp
 )
 target_link_libraries(recorder PRIVATE Elegance::Elegance)
+elegance_application(recorder)
 
 if (MSVC)
     target_compile_options(recorder PRIVATE /W4 /permissive- /utf-8)

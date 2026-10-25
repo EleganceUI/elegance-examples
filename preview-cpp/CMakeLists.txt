@@ -32,6 +32,7 @@ endif ()
 
 add_executable(preview main.cpp)
 target_link_libraries(preview PRIVATE Elegance::Elegance)
+elegance_application(preview)
 
 get_target_property(elegance_type Elegance::Elegance TYPE)
 if (elegance_type STREQUAL "SHARED_LIBRARY")

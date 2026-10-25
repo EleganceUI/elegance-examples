@@ -16,8 +16,3 @@ members = [
     "wgpu-image-rs",
     "wgpu-direct-rs",
 ]
-
-# The direct-GPU API is developed in the sibling local bindings checkout.
-# Use one Elegance package identity for every example and the bridge.
-[patch."https://github.com/EleganceUI/elegance-rs"]
-elegance = { path = "../elegance-rs/elegance" }

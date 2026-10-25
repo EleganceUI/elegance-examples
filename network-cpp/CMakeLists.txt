@@ -34,6 +34,7 @@ add_executable(network
         main.cpp
 )
 target_link_libraries(network PRIVATE Elegance::Elegance)
+elegance_application(network)
 
 if (MSVC)
     target_compile_options(network PRIVATE /W4 /permissive- /utf-8)

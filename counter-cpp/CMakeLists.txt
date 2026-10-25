@@ -34,6 +34,7 @@ add_executable(counter
         main.cpp
 )
 target_link_libraries(counter PRIVATE Elegance::Elegance)
+elegance_application(counter)
 
 if (MSVC)
     target_compile_options(counter PRIVATE /W4 /permissive- /utf-8)

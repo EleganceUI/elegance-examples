@@ -34,6 +34,7 @@ add_executable(animation
         main.cpp
 )
 target_link_libraries(animation PRIVATE Elegance::Elegance)
+elegance_application(animation)
 
 if (MSVC)
     target_compile_options(animation PRIVATE /W4 /permissive- /utf-8)

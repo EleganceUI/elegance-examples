@@ -40,6 +40,7 @@ target_link_libraries(login PRIVATE
         Elegance::Elegance
         unofficial::nayuki-qr-code-generator::nayuki-qr-code-generator
 )
+elegance_application(login)
 
 if (MSVC)
     target_compile_options(login PRIVATE /W4 /permissive- /utf-8)

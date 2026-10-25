@@ -86,7 +86,6 @@ The cube examples keep the same drag-to-rotate, scroll-to-zoom and speed control
 ```sh
 cargo run -p wgpu-image
 cargo run -p wgpu-direct
-cargo run -p wgpu-direct -- --smoke
 ```
 
 `wgpu-image-rs` retains the cross-platform CPU-readback/VideoFeed path.

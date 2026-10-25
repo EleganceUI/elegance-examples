@@ -9,6 +9,6 @@ license = "MIT"
 publish = false
 
 [dependencies]
-elegance = { path = "../../elegance-rs/elegance" }
-elegance-wgpu = { path = "../../elegance-rs/elegance-wgpu" }
+elegance = { git = "https://github.com/EleganceUI/elegance-rs" }
+elegance-wgpu = { git = "https://github.com/EleganceUI/elegance-rs" }
 pollster = "0.4"
