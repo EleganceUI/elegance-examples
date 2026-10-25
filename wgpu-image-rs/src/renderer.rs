@@ -19,11 +19,13 @@ pub enum Input {
     Grab(bool),
     Drag { dx: f32, dy: f32 },
     Zoom(f32),
+    Stop,
 }
 
 pub struct CubeRenderer {
     pub image: VideoFeed,
     pub input: mpsc::Sender<Input>,
+    producer: Option<thread::JoinHandle<()>>,
 }
 
 impl CubeRenderer {
@@ -48,12 +50,26 @@ impl CubeRenderer {
         let image = VideoFeed::new()?;
         let output = image.clone();
         let (input, inputs) = mpsc::channel();
-        thread::spawn(move || {
+        let producer = thread::spawn(move || {
             if let Err(error) = run(Gpu::new(device, queue), output, speed, inputs) {
                 eprintln!("wgpu-image: {error}");
             }
         });
-        Ok(Self { image, input })
+        Ok(Self {
+            image,
+            input,
+            producer: Some(producer),
+        })
+    }
+}
+
+// Stop the producer before the app exits: GPU work still running then races the driver's teardown.
+impl Drop for CubeRenderer {
+    fn drop(&mut self) {
+        let _ = self.input.send(Input::Stop);
+        if let Some(producer) = self.producer.take() {
+            let _ = producer.join();
+        }
     }
 }
 
@@ -94,6 +110,7 @@ fn run(
                     Input::Zoom(factor) => {
                         pose.distance = (pose.distance / factor).clamp(3.5, 15.0)
                     }
+                    Input::Stop => return Ok(()),
                 },
                 Err(mpsc::TryRecvError::Empty) => break,
                 // The mounted UI owns the senders; dropping it stops the producer.
