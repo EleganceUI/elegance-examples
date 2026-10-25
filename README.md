@@ -29,8 +29,8 @@ reload and previews.
 | network | [✓](network-cpp) | | A request as reactive state, and a lazy list of web images |
 | recorder | [✓](recorder-cpp) | | Voice memos with a level meter, and a camera preview |
 | desktop | [✓](desktop-cpp) | | File dialogs, notifications, a tray icon, dropped files |
-| opengl | [✓](opengl-cpp) | | OpenGL drawing into a GpuImage (Windows) |
-| webgpu | | [✓](webgpu-rs) | wgpu (WebGPU) drawing into a GpuImage (Windows) |
+| wgpu-image | | [✓](wgpu-image-rs) | A wgpu cube read back through CPU memory into a VideoFeed |
+| wgpu-direct | | [✓](wgpu-direct-rs) | The same cube rendered directly into a shared GPU image, without CPU pixel readback |
 | login | [✓](login-cpp) | | A modern sign-in screen with a QR code |
 | music | [✓](music-cpp) | | A desktop music player |
 | shell | [✓](shell-cpp) | | A desktop environment: windows, a dock, a launcher, sample apps |
@@ -70,13 +70,33 @@ cargo run
 finding or setting up vcpkg, CMake and Ninja itself. See its README for the details.
 
 The `Cargo.toml` here makes every Rust example one workspace, so they share a build:
-`cargo build --workspace`. To build them against a local checkout of elegance-rs, add to
-`.cargo/config.toml` here:
+`cargo build --workspace`. This workspace patches Elegance to the sibling `../elegance-rs`
+checkout so the direct-GPU bridge and the examples use the same bindings. In another
+workspace, the equivalent local override is:
 
 ```toml
 [patch."https://github.com/EleganceUI/elegance-rs"]
 elegance = { path = "../elegance-rs/elegance" }
 ```
+
+### wgpu cube examples
+
+The cube examples keep the same drag-to-rotate, scroll-to-zoom and speed controls:
+
+```sh
+cargo run -p wgpu-image
+cargo run -p wgpu-direct
+cargo run -p wgpu-direct -- --smoke
+```
+
+`wgpu-image-rs` retains the cross-platform CPU-readback/VideoFeed path.
+`wgpu-direct-rs` uses the sibling `elegance-wgpu` crate and its pinned wgpu re-export,
+with no C++ or backend-specific application code. It requires Rust 1.93+ and compatible
+GPU-sharing support; Metal is hardware-tested, while DX12 and Vulkan implementations
+still need hardware validation. D3D11 and OpenGL/GLES sharing are not implemented.
+Unsupported sharing returns an error, not a CPU fallback. See its README for details.
+Both producers use a nominal 60 Hz throttle, not a display-VSync callback; Elegance's
+window presentation remains FIFO/VSync.
 
 ### Previews
 

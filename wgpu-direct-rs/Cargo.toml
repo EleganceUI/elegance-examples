@@ -1,0 +1,14 @@
+# wgpu-direct: The same cube rendered directly into Elegance's shared GPU image.
+# A complete project: copy this folder to start an app (see the README one folder up).
+
+[package]
+name = "wgpu-direct"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[dependencies]
+elegance = { path = "../../elegance-rs/elegance" }
+elegance-wgpu = { path = "../../elegance-rs/elegance-wgpu" }
+pollster = "0.4"
