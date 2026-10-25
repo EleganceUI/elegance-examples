@@ -48,6 +48,7 @@ impl Component for Cube {
         let pointer = self.renderer.input.clone();
         let scroll = self.renderer.input.clone();
         let resize = self.renderer.input.clone();
+
         elg! {
             VStack {
                 Text("Hello, World", padding: 24.)
