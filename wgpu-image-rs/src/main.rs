@@ -21,6 +21,8 @@ impl Cube {
 impl Component for Cube {
     fn body(&self) -> impl IntoView {
         let speed = State::new(60.0f32);
+        let render_h = State::new(0);
+        let render_w = State::new(0);
         let renderer = self.renderer.clone();
 
         effect(move || {
@@ -31,32 +33,48 @@ impl Component for Cube {
         let scroll = self.renderer.input.clone();
         let resize = self.renderer.input.clone();
         elg! {
-            ZStack(alignment: .bottom) {
-                VideoFeedView(&self.renderer.image, mode: .fill)
-                    .on_sized(move |size| {
-                        let _ = resize.send(Input::Resize(size));
-                    })
-                    .on_drag(move |event| {
-                        let input = match event {
-                            DragEvent::Started => Input::Grab(true),
-                            DragEvent::Moved { delta } => Input::Drag { dx: delta.x, dy: delta.y },
-                            DragEvent::Ended => Input::Grab(false),
-                        };
-                        let _ = pointer.send(input);
-                    })
-                    .on_scroll(move |event| {
-                        let _ = scroll.send(Input::Zoom(1.1f32.powf(-event.dy / 48.0)));
-                        true
-                    })
-                HStack(spacing: 12) {
-                    Text("Speed")
-                    Slider($speed, min: -360, max: 360).frame(width: 220)
-                    Text(move || format!("{}°/s", speed.get() as i32)).frame(width: 64)
+            VStack(spacing: 12) {
+                Text("Rendering at {render_w}x{render_h}.")
+                ZStack(alignment: .bottom) {
+                    VideoFeedView(&self.renderer.image, mode: .fill)
+                        .on_sized(move |size| {
+                            render_w.set(size.width);
+                            render_h.set(size.height);
+                            let _ = resize.send(Input::Resize(size));
+                        })
+                        .on_drag(move |event| {
+                            let input = match event {
+                                DragEvent::Started => Input::Grab(true),
+                                DragEvent::Moved { delta } => Input::Drag { dx: delta.x, dy: delta.y },
+                                DragEvent::Ended => Input::Grab(false),
+                            };
+                            let _ = pointer.send(input);
+                        })
+                        .on_scroll(move |event| {
+                            let _ = scroll.send(Input::Zoom(1.1f32.powf(-event.dy / 48.0)));
+                            true
+                        })
+                        .corner_radius(12)
+                    VStack(spacing: 12., alignment: .leading) {
+                        HStack {
+                            Text("Hello, World")
+                            Button(label: "Press me!", action: || println!("Pressed!"))
+                        }
+                        HStack(spacing: 12) {
+                            Text("Speed")
+                            Slider($speed, min: -360, max: 360).frame(width: 220)
+                            Text(move || format!("{}°/s", speed.get() as i32)).frame(width: 64)
+                        }
+                        .padding(8)
+                        .background(Material::ULTRA_THICK)
+                        .clip_shape(RoundedRectangle(CornerRadii::all(8.)))
+                    }
+                    .padding(12)
+                    .background(Material::REGULAR)
+                    .corner_radius(12.)
+                    .padding(12)
                 }
-                .padding(12)
-                .background_in(Material::REGULAR, Capsule())
-                .padding(20)
-            }
+            }.padding(12)
         }
     }
 }
