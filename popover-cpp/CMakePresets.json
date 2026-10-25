@@ -24,18 +24,20 @@
         },
         {
             "name": "windows-debug",
-            "displayName": "Windows Debug (MSVC)",
+            "displayName": "Windows Debug (MSVC, shared)",
             "inherits": "windows-base",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ELG_BUILD_SHARED": true
             }
         },
         {
             "name": "windows-release",
-            "displayName": "Windows Release (MSVC)",
+            "displayName": "Windows Release (MSVC, static)",
             "inherits": "windows-base",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "ELG_BUILD_SHARED": false
             }
         },
         {
@@ -48,23 +50,42 @@
                 "rhs": "Darwin"
             },
             "cacheVariables": {
-                "CMAKE_OSX_DEPLOYMENT_TARGET": "13.3"
+                "CMAKE_OSX_ARCHITECTURES": "arm64",
+                "VCPKG_TARGET_TRIPLET": "arm64-osx",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+                "ELG_BUILD_TESTS": false,
+                "ELG_BUILD_SANDBOX": false,
+                "ELG_ACCESSIBILITY": true,
+                "ELG_ACCESSKIT_SHARED": true
             }
         },
         {
             "name": "macos-debug",
-            "displayName": "macOS Debug (Apple Clang)",
+            "displayName": "macOS Debug (Apple Silicon, shared)",
             "inherits": "macos-base",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ELG_BUILD_SHARED": true
             }
         },
         {
             "name": "macos-release",
-            "displayName": "macOS Release (Apple Clang)",
+            "displayName": "macOS Release (Apple Silicon, static)",
             "inherits": "macos-base",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "ELG_BUILD_SHARED": false
+            }
+        },
+        {
+            "name": "local-offline-static",
+            "displayName": "macOS Release, existing offline dependencies (Apple Silicon)",
+            "description": "Reuse the local-offline-static dependency installation and AccessKit sources; requires that build to have been populated already.",
+            "inherits": "macos-release",
+            "cacheVariables": {
+                "VCPKG_INSTALLED_DIR": "${sourceDir}/../../elegance/build/local-offline-static/vcpkg_installed",
+                "VCPKG_MANIFEST_INSTALL": false,
+                "FETCHCONTENT_SOURCE_DIR_ACCESSKIT_C": "${sourceDir}/../../elegance/build/local-offline-static/_deps/accesskit_c-src"
             }
         }
     ],
@@ -79,11 +100,18 @@
         },
         {
             "name": "macos-debug",
-            "configurePreset": "macos-debug"
+            "configurePreset": "macos-debug",
+            "jobs": 8
         },
         {
             "name": "macos-release",
-            "configurePreset": "macos-release"
+            "configurePreset": "macos-release",
+            "jobs": 8
+        },
+        {
+            "name": "local-offline-static",
+            "configurePreset": "local-offline-static",
+            "jobs": 8
         }
     ]
 }

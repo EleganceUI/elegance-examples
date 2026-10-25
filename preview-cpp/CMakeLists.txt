@@ -30,18 +30,22 @@ if (NOT TARGET Elegance::Elegance)
     endif ()
 endif ()
 
-# The views: a shared library that the app rebuilds and reloads when a file in views/ changes.
-elegance_views_module(preview_views
-        views/root.cpp
-        views/profile_card.cpp
-)
-
-# The app: shows the views (or, with --previews, their previews).
 add_executable(preview main.cpp)
 target_link_libraries(preview PRIVATE Elegance::Elegance)
-elegance_hot_reload(preview MODULE preview_views WATCH views)
 
-foreach (target IN ITEMS preview_views preview)
+get_target_property(elegance_type Elegance::Elegance TYPE)
+if (elegance_type STREQUAL "SHARED_LIBRARY")
+    elegance_views_module(preview_views views/root.cpp views/profile_card.cpp)
+    elegance_hot_reload(preview MODULE preview_views WATCH views)
+    target_compile_definitions(preview PRIVATE ELG_PREVIEW_HOT_RELOAD=1)
+    set(preview_targets preview_views preview)
+else ()
+    # Static release builds keep one Elegance runtime and do not load a views module.
+    target_sources(preview PRIVATE views/root.cpp views/profile_card.cpp)
+    set(preview_targets preview)
+endif ()
+
+foreach (target IN LISTS preview_targets)
     if (MSVC)
         target_compile_options(${target} PRIVATE /W4 /permissive- /utf-8)
     else ()
