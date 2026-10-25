@@ -178,7 +178,7 @@ dependencies = [
 [[package]]
 name = "elegance"
 version = "0.2.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1c18a9f1c1f999db6965142c738f938abcf06b4f"
+source = "git+https://github.com/EleganceUI/elegance-rs#ff6bd56b85363388af2a7ea08907755bb63bc118"
 dependencies = [
  "elegance-macros",
  "elegance-sys",
@@ -188,7 +188,7 @@ dependencies = [
 [[package]]
 name = "elegance-macros"
 version = "0.2.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1c18a9f1c1f999db6965142c738f938abcf06b4f"
+source = "git+https://github.com/EleganceUI/elegance-rs#ff6bd56b85363388af2a7ea08907755bb63bc118"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -198,7 +198,7 @@ dependencies = [
 [[package]]
 name = "elegance-sys"
 version = "0.2.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1c18a9f1c1f999db6965142c738f938abcf06b4f"
+source = "git+https://github.com/EleganceUI/elegance-rs#ff6bd56b85363388af2a7ea08907755bb63bc118"
 dependencies = [
  "cc",
 ]
@@ -206,7 +206,7 @@ dependencies = [
 [[package]]
 name = "elegance-wgpu"
 version = "0.1.0"
-source = "git+https://github.com/EleganceUI/elegance-rs#1c18a9f1c1f999db6965142c738f938abcf06b4f"
+source = "git+https://github.com/EleganceUI/elegance-rs#ff6bd56b85363388af2a7ea08907755bb63bc118"
 dependencies = [
  "ash",
  "elegance",
@@ -508,7 +508,7 @@ dependencies = [
 [[package]]
 name = "naga"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1c18a9f1c1f999db6965142c738f938abcf06b4f"
+source = "git+https://github.com/EleganceUI/elegance-rs#ff6bd56b85363388af2a7ea08907755bb63bc118"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -545,7 +545,7 @@ dependencies = [
 [[package]]
 name = "naga-types"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1c18a9f1c1f999db6965142c738f938abcf06b4f"
+source = "git+https://github.com/EleganceUI/elegance-rs#ff6bd56b85363388af2a7ea08907755bb63bc118"
 dependencies = [
  "hashbrown 0.17.1",
  "indexmap",
@@ -1112,7 +1112,7 @@ dependencies = [
 [[package]]
 name = "wgpu"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1c18a9f1c1f999db6965142c738f938abcf06b4f"
+source = "git+https://github.com/EleganceUI/elegance-rs#ff6bd56b85363388af2a7ea08907755bb63bc118"
 dependencies = [
  "arrayvec",
  "bitflags",
@@ -1174,7 +1174,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1c18a9f1c1f999db6965142c738f938abcf06b4f"
+source = "git+https://github.com/EleganceUI/elegance-rs#ff6bd56b85363388af2a7ea08907755bb63bc118"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -1215,7 +1215,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-apple"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1c18a9f1c1f999db6965142c738f938abcf06b4f"
+source = "git+https://github.com/EleganceUI/elegance-rs#ff6bd56b85363388af2a7ea08907755bb63bc118"
 dependencies = [
  "wgpu-hal 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
 ]
@@ -1241,7 +1241,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-windows-linux-android"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1c18a9f1c1f999db6965142c738f938abcf06b4f"
+source = "git+https://github.com/EleganceUI/elegance-rs#ff6bd56b85363388af2a7ea08907755bb63bc118"
 dependencies = [
  "wgpu-hal 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
 ]
@@ -1314,7 +1314,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1c18a9f1c1f999db6965142c738f938abcf06b4f"
+source = "git+https://github.com/EleganceUI/elegance-rs#ff6bd56b85363388af2a7ea08907755bb63bc118"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -1379,7 +1379,7 @@ dependencies = [
 [[package]]
 name = "wgpu-naga-bridge"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1c18a9f1c1f999db6965142c738f938abcf06b4f"
+source = "git+https://github.com/EleganceUI/elegance-rs#ff6bd56b85363388af2a7ea08907755bb63bc118"
 dependencies = [
  "naga 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
  "wgpu-types 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
@@ -1404,7 +1404,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1c18a9f1c1f999db6965142c738f938abcf06b4f"
+source = "git+https://github.com/EleganceUI/elegance-rs#ff6bd56b85363388af2a7ea08907755bb63bc118"
 dependencies = [
  "bitflags",
  "bytemuck",
