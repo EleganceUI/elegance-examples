@@ -39,6 +39,8 @@ fn InfoCard(
 impl Component for Cube {
     fn body(&self) -> impl IntoView {
         let speed = State::new(60.0f32);
+        let render_h = State::new(0);
+        let render_w = State::new(0);
         let renderer = self.renderer.clone();
 
         effect(move || {
@@ -51,10 +53,12 @@ impl Component for Cube {
 
         elg! {
             VStack(spacing: 12) {
-                Text("Hello, World")
+                Text("Rendering at {render_w}x{render_h}.")
                 ZStack(alignment: .bottom) {
                     GpuImageView(&self.renderer.image, mode: .fill)
                         .on_sized(move |size| {
+                            render_w.set(size.width);
+                            render_h.set(size.height);
                             let _ = resize.send(Input::Resize(size));
                         })
                         .on_drag(move |event| {
@@ -69,13 +73,11 @@ impl Component for Cube {
                             let _ = scroll.send(Input::Zoom(1.1f32.powf(-event.dy / 48.0)));
                             true
                         })
-                        .corner_radius(24.)
+                        .corner_radius(12.)
                     VStack(spacing: 12., alignment: .leading) {
                         HStack {
                             Text("Hello, World")
-                            Button(action: || println!("Pressed!")) {
-                                Text("Press me!")
-                            }
+                            Button(label: "Press me!", action: || println!("Pressed!"))
                         }
                         HStack(spacing: 12) {
                             Text("Speed")
@@ -83,11 +85,13 @@ impl Component for Cube {
                             Text(move || format!("{}°/s", speed.get() as i32)).frame(width: 64)
                         }
                         .padding(8)
-                        .background_in(Material::ULTRA_THICK, RoundedRectangle(CornerRadii::all(8.)))
+                        .background(Material::ULTRA_THICK)
+                        .clip_shape(RoundedRectangle(CornerRadii::all(8.)))
                     }
                     .padding(12)
                     .background(Material::REGULAR)
                     .corner_radius(12.)
+                    .padding(12)
                 }
             }.padding(12)
         }
