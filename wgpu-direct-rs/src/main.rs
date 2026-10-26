@@ -83,7 +83,10 @@ impl Component for Cube {
 fn main() -> Result<ExitCode, Error> {
     App::new()
         .window(
-            WindowDesc::new("WebGPU · Direct GPU").size(640, 640),
+            WindowDesc::new("WebGPU · Direct GPU")
+                .size(640, 640)
+                .title_bar(TitleBar::Integrated)
+                .traffic_lights_position(14., 14.),
             Cube::new()?,
         )
         .run()
