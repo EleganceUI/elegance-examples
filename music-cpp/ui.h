@@ -30,11 +30,11 @@ elg::View AlbumArtwork(int album, float corner_radius = 6, float icon_size = 0);
 // Rows that light up under the pointer (sidebar items, menus of rows).
 class RowButtonStyle final : public elg::ButtonStyle {
 public:
-    explicit RowButtonStyle(std::function<bool()> selected = {}) : selected_(std::move(selected)) {}
+    explicit RowButtonStyle(elg::Prop<bool> selected = false) : selected_(std::move(selected)) {}
     elg::View make_body(const elg::ButtonConfiguration& button) const override;
 
 private:
-    std::function<bool()> selected_;
+    elg::Prop<bool> selected_;
 };
 
 // Capsule buttons: Play (filled with the accent) and Shuffle (tinted).
@@ -50,13 +50,13 @@ private:
 // Round icon buttons for the transport and toolbar; `active` tints them (shuffle on, a panel open).
 class IconButtonStyle final : public elg::ButtonStyle {
 public:
-    explicit IconButtonStyle(float size = 16, std::function<bool()> active = {})
+    explicit IconButtonStyle(float size = 16, elg::Prop<bool> active = false)
         : size_(size), active_(std::move(active)) {}
     elg::View make_body(const elg::ButtonConfiguration& button) const override;
 
 private:
     float size_;
-    std::function<bool()> active_;
+    elg::Prop<bool> active_;
 };
 
 // --- Layout ---

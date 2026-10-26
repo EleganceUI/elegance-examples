@@ -89,7 +89,7 @@ View ToggleRow(std::string title, std::string detail, State<bool> value) {
     return Row(std::move(title), std::move(detail), Toggle("", value.binding()).fixed_size());
 }
 
-View SidebarItem(std::string title, std::string icon, std::function<bool()> selected, std::function<void()> action) {
+View SidebarItem(std::string title, std::string icon, Prop<bool> selected, std::function<void()> action) {
     return Button(HStack({.spacing = 10}, Image(std::move(icon)).foreground_style(ThemeColor::accent).frame({.width = 20}),
                          Text(std::move(title)).font(Font::system(14)), Spacer())
                       .padding(EdgeInsets::symmetric(10, 7)),

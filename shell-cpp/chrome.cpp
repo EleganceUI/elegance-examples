@@ -693,14 +693,14 @@ View AppIcon(AppKind app, float size) {
 }
 
 View HoverButtonStyle::make_body(const ButtonConfiguration& button) const {
-    const std::function<bool()> selected = selected_;
+    const Prop<bool> selected = selected_;
     return button.label.background(
         [=](const EnvironmentValues& env) {
             const Color base = env.color(ThemeColor::primary);
             if (button.is_pressed()) {
                 return ShapeStyle(base.opacity(0.16f));
             }
-            if (selected && selected()) {
+            if (selected.get(env)) {
                 return ShapeStyle(base.opacity(0.12f));
             }
             return ShapeStyle(button.is_hovered() ? base.opacity(0.08f) : Color::clear);

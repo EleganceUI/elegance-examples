@@ -26,13 +26,13 @@ elg::View AppIcon(AppKind app, float size);
 // Buttons that light up under the pointer: rows, toolbar icons, tiles.
 class HoverButtonStyle final : public elg::ButtonStyle {
 public:
-    explicit HoverButtonStyle(float corner_radius = 8, std::function<bool()> selected = {})
+    explicit HoverButtonStyle(float corner_radius = 8, elg::Prop<bool> selected = false)
         : corner_radius_(corner_radius), selected_(std::move(selected)) {}
     elg::View make_body(const elg::ButtonConfiguration& button) const override;
 
 private:
     float corner_radius_;
-    std::function<bool()> selected_;
+    elg::Prop<bool> selected_;
 };
 
 // Pressing and dragging: `began` on the press, `changed` with the pointer's movement since then,

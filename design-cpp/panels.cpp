@@ -21,18 +21,18 @@ namespace {
 
 class ToolButtonStyle final : public ButtonStyle {
 public:
-  explicit ToolButtonStyle(std::function<bool()> selected = {})
+  explicit ToolButtonStyle(Prop<bool> selected = false)
       : selected_(std::move(selected)) {}
   View make_body(const ButtonConfiguration &button) const override {
-    const std::function<bool()> selected = selected_;
+    const Prop<bool> selected = selected_;
     return button.label
         .foreground_style([=](const EnvironmentValues &env) {
-          return selected && selected() ? Color::white
+          return selected.get(env) ? Color::white
                                         : env.color(ThemeColor::primary);
         })
         .background(
             [=](const EnvironmentValues &env) {
-              if (selected && selected()) {
+              if (selected.get(env)) {
                 return ShapeStyle(env.color(ThemeColor::accent));
               }
               const Color base = env.color(ThemeColor::primary);
@@ -46,12 +46,12 @@ public:
   }
 
 private:
-  std::function<bool()> selected_;
+  Prop<bool> selected_;
 };
 
 View IconButton(std::string icon, std::string help,
                 std::function<void()> action,
-                std::function<bool()> selected = {}) {
+                Prop<bool> selected = false) {
   return Button(Image(std::move(icon)).font(Font::system(16)).frame(30, 30),
                 std::move(action))
       .button_style(ToolButtonStyle(std::move(selected)))

@@ -42,7 +42,7 @@ View RowButtonStyle::make_body(const ButtonConfiguration& button) const {
         .frame({.max_width = infinity, .alignment = Alignment::leading})
         .background(
             [=](const EnvironmentValues& env) {
-                if (selected && selected()) {
+                if (selected.get(env)) {
                     return env.color(ThemeColor::outline);
                 }
                 return button.is_hovered() ? env.color(ThemeColor::outline).opacity(0.5f) : Color::clear;
@@ -73,7 +73,7 @@ View IconButtonStyle::make_body(const ButtonConfiguration& button) const {
             if (!button.is_enabled()) {
                 return env.color(ThemeColor::tertiary);
             }
-            return active && active() ? kAccent : env.color(ThemeColor::primary);
+            return active.get(env) ? kAccent : env.color(ThemeColor::primary);
         })
         .frame(box, box)
         .background(
