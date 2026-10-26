@@ -21,6 +21,11 @@ use elegance::{App, Error, WindowDesc};
 
 fn main() -> Result<ExitCode, Error> {
     App::new()
-        .window(WindowDesc::new("Components").size(560, 720).min_size(420.0, 480.0), root::Root)
+        .window(
+            WindowDesc::new("Components")
+                .size(560, 720)
+                .min_size(420.0, 480.0),
+            root::Root,
+        )
         .run()
 }
