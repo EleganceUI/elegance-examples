@@ -229,16 +229,12 @@ public:
       dragging_ = false;
       return {.consumed = true};
     case PointerEvent::Kind::hover:
-      set_cursor(Cursor::crosshair);
       return {.consumed = true};
     }
     return {};
   }
-  EventResult hover(bool inside) override {
-    if (!inside) {
-      set_cursor(Cursor::arrow);
-    }
-    return {};
+  PointerStyle pointer_style(Point) const override {
+    return PointerStyle::crosshair;
   }
 
 private:

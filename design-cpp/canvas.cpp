@@ -47,15 +47,15 @@ std::vector<Point> handle_points(Rect r) {
             {r.max_x(), r.max_y()}, {cx, r.max_y()}, {r.x, r.max_y()}, {r.x, cy}};
 }
 
-Cursor handle_cursor(int handle) {
+PointerStyle handle_pointer_style(int handle) {
     switch (handle) {
     case 0:
-    case 4: return Cursor::resize_nwse;
+    case 4: return PointerStyle::resize_nwse;
     case 2:
-    case 6: return Cursor::resize_nesw;
+    case 6: return PointerStyle::resize_nesw;
     case 1:
-    case 5: return Cursor::resize_vertical;
-    default: return Cursor::resize_horizontal;
+    case 5: return PointerStyle::resize_vertical;
+    default: return PointerStyle::resize_horizontal;
     }
 }
 
@@ -281,9 +281,21 @@ public:
     EventResult hover(bool inside) override {
         if (!inside) {
             doc_.hovered = 0;
-            set_cursor(Cursor::arrow);
         }
         return {};
+    }
+
+    // Moving with the hand tool or Space held, drawing with the others, and resizing over the
+    // selection's handles.
+    PointerStyle pointer_style(Point location) const override {
+        if (space_ || doc_.tool.peek() == Tool::hand) {
+            return PointerStyle::move;
+        }
+        if (doc_.tool.peek() != Tool::select) {
+            return PointerStyle::crosshair;
+        }
+        const int handle = handle_at({location.x - frame_.x, location.y - frame_.y});
+        return handle >= 0 ? handle_pointer_style(handle) : PointerStyle::arrow;
     }
 
     EventResult pointer(const PointerEvent& event, Rect frame) override {
@@ -313,7 +325,6 @@ public:
     EventResult key(const KeyEvent& event) override {
         if (event.key == Key::space) {
             space_ = event.kind == KeyEvent::Kind::down;
-            set_cursor(space_ ? Cursor::move : Cursor::arrow);
             return {.consumed = true};
         }
         if (event.kind != KeyEvent::Kind::down) {
@@ -407,20 +418,12 @@ private:
 
     void on_hover(Point local) {
         if (space_ || doc_.tool.peek() == Tool::hand) {
-            set_cursor(Cursor::move);
             return;
         }
-        if (doc_.tool.peek() != Tool::select) {
-            doc_.hovered = 0;
-            set_cursor(Cursor::crosshair);
-            return;
-        }
-        if (const int handle = handle_at(local); handle >= 0) {
-            set_cursor(handle_cursor(handle));
+        if (doc_.tool.peek() != Tool::select || handle_at(local) >= 0) {
             doc_.hovered = 0;
             return;
         }
-        set_cursor(Cursor::arrow);
         doc_.hovered = doc_.click_target(doc_.hit(doc_.to_canvas(local)));
     }
 
