@@ -222,7 +222,8 @@ dependencies = [
 
 [[package]]
 name = "elegance"
-version = "0.2.1"
+version = "0.2.2"
+source = "git+https://github.com/EleganceUI/elegance-rs#65a8e4fc0182464db886e784b5325ebeb99debf7"
 dependencies = [
  "elegance-macros",
  "elegance-sys",
@@ -231,7 +232,8 @@ dependencies = [
 
 [[package]]
 name = "elegance-macros"
-version = "0.2.1"
+version = "0.2.2"
+source = "git+https://github.com/EleganceUI/elegance-rs#65a8e4fc0182464db886e784b5325ebeb99debf7"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -240,7 +242,8 @@ dependencies = [
 
 [[package]]
 name = "elegance-sys"
-version = "0.2.1"
+version = "0.2.2"
+source = "git+https://github.com/EleganceUI/elegance-rs#65a8e4fc0182464db886e784b5325ebeb99debf7"
 dependencies = [
  "cc",
  "sha2",
@@ -248,7 +251,8 @@ dependencies = [
 
 [[package]]
 name = "elegance-wgpu"
-version = "0.2.1"
+version = "0.2.2"
+source = "git+https://github.com/EleganceUI/elegance-rs#65a8e4fc0182464db886e784b5325ebeb99debf7"
 dependencies = [
  "ash",
  "elegance",

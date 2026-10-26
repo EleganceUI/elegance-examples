@@ -17,3 +17,7 @@ members = [
     "wgpu-image-rs",
     "wgpu-direct-rs",
 ]
+
+# Use the local build-script fix when running examples from this checkout.
+# [patch."https://github.com/EleganceUI/elegance-rs"]
+# elegance-sys = { path = "../elegance-rs/elegance-sys" }
