@@ -154,8 +154,11 @@ View Volume(const Model& model) {
                   Slider(volume.binding()).frame({.width = 96}).accessibility_label("Volume"));
 }
 
-// The window's caption buttons (WindowControls): 3 of 46 x 32, in the top-right corner.
-constexpr float kCaptionButtonsWidth = 3 * 46;
+// macOS keeps its traffic lights over the content, centered on the player bar's height; Windows
+// apps draw their own caption buttons (WindowControls): 3 of 46 x 32, in the top-right corner.
+constexpr TitleBar kTitleBar = current_platform() == Platform::windows ? TitleBar::hidden : TitleBar::integrated;
+constexpr Point kTrafficLights{20, 27};
+constexpr float kCaptionButtonsWidth = kTitleBar == TitleBar::hidden ? 3 * 46 : 0;
 
 // The player bar's three parts, spaced like CSS `justify-content: space-evenly`: the same gap
 // before the first, between each two, and after the last.
@@ -216,7 +219,11 @@ View PlayerBar(const Model& model) {
                       .help("Playing Next"))
                               // The caption buttons sit above this end of the bar, in the window's corner.
                               .padding(EdgeInsets{.trailing = kCaptionButtonsWidth});
-    return SpaceEvenlyBarLayout{}(leading, Display(model), trailing)
+    // With the sidebar hidden, the bar starts under the traffic lights: begin after them.
+    const View clear_of_controls = EmptyView().frame([=] {
+        return Size{sidebar() ? 0.f : window().system_controls_frame().max_x(), 0.f};
+    });
+    return SpaceEvenlyBarLayout{}(HStack({.spacing = 0}, clear_of_controls, leading), Display(model), trailing)
         .padding(EdgeInsets{.leading = 10, .trailing = 10})
         .frame({.max_width = infinity, .min_height = 68, .max_height = 68})
         .opacity([=] { return window().is_active() ? 1.f : 0.75f; })
@@ -259,7 +266,11 @@ View SearchField(const Model& model) {
 View Sidebar(const Model& model) {
     using Kind = Section::Kind;
     // The sidebar reaches the top of the window: its top strip, around the search field, drags it.
-    const View top = SearchField(model).padding(EdgeInsets{.top = 18, .leading = 10, .bottom = 6, .trailing = 10})
+    // The search field goes below the traffic lights, where the window has them.
+    const auto window = Environment<WindowKey>();
+    const View top = VStack({.spacing = 0},
+                            EmptyView().frame([=] { return Size{0, window().system_controls_frame().max_y()}; }),
+                            SearchField(model).padding(EdgeInsets{.top = 18, .leading = 10, .bottom = 6, .trailing = 10}))
                          .window_drag_area();
     return VStack({.spacing = 0}, top, ScrollView(
         VStack({.alignment = HorizontalAlignment::leading, .spacing = 1},
@@ -459,7 +470,7 @@ int main(int argc, char** argv) {
         const Model model;
         PlaybackClock clock(model.player);
         app.window({.title = "Music", .width = 1280, .height = 800, .min_size = Size{1040, 620},
-                    .title_bar = TitleBar::hidden},
+                    .title_bar = kTitleBar, .traffic_lights_position = kTrafficLights},
                    [&] {
                        clock.follow();
                        if (!screen.empty()) {
