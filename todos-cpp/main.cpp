@@ -44,7 +44,7 @@ View TodoRow(int id, std::string title, Todos todos) {
         });
     };
 
-    return HStack(Toggle(std::move(title), done).toggle_style(CheckboxToggleStyle{}),
+    return HStack(Checkbox(std::move(title), done),
                   Spacer(),
                   Button(Image("trash"), remove)
                       .button_style(PlainButtonStyle{})
