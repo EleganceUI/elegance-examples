@@ -146,7 +146,7 @@ fn ModsPage() -> impl IntoView {
     elg! {
         VStack(alignment: .leading, spacing: 8) {
             Text("Mods").font(.title)
-            Toggle("Example mod", $enabled)
+            Toggle("Example mod", enabled)
         }
         .padding(24)
     }

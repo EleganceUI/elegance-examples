@@ -50,7 +50,7 @@ fn Detail(selected: State<i64>, sidebar_visible: State<bool>) -> impl IntoView {
             Text(move || game().map(|g| g.name).unwrap_or("Pick a game")).font(.title)
             Text(move || game().map(|g| format!("{} mods installed", g.mods)).unwrap_or_default())
                 .foreground_style(.secondary)
-            Button("Toggle sidebar", move || sidebar_visible.update(|v| *v = !*v))
+            Button("Toggle sidebar", move || sidebar_visible.toggle())
         }
         .padding(24)
         .frame(max_width: .infinity, max_height: .infinity, alignment: .top_leading)
@@ -64,7 +64,7 @@ fn Library() -> impl IntoView {
 
     elg! {
         // Two views in the block: sidebar, detail. (Three: sidebar, content, detail.)
-        NavigationSplitView(sidebar_visible: $sidebar_visible, sidebar_width: ColumnWidth::new(160.0, 200.0, 300.0)) {
+        NavigationSplitView(sidebar_visible: sidebar_visible,sidebar_width: ColumnWidth::new(160.0, 200.0, 300.0)) {
             Sidebar(selected: selected)
             Detail(selected: selected, sidebar_visible: sidebar_visible)
         }

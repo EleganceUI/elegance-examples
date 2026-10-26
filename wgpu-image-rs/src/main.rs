@@ -21,8 +21,7 @@ impl Cube {
 impl Component for Cube {
     fn body(&self) -> impl IntoView {
         let speed = State::new(60.0f32);
-        let render_h = State::new(0);
-        let render_w = State::new(0);
+        let render_size = State::new((0, 0));
         let renderer = self.renderer.clone();
 
         effect(move || {
@@ -32,14 +31,14 @@ impl Component for Cube {
         let pointer = self.renderer.input.clone();
         let scroll = self.renderer.input.clone();
         let resize = self.renderer.input.clone();
+
         elg! {
             VStack(spacing: 12) {
-                Text("Rendering at {render_w}x{render_h}.")
+                Text("Rendering at {render_size.0}x{render_size.1}.")
                 ZStack(alignment: .bottom) {
                     VideoFeedView(&self.renderer.image, mode: .fill)
                         .on_sized(move |size| {
-                            render_w.set(size.width);
-                            render_h.set(size.height);
+                            render_size.set((size.width, size.height));
                             let _ = resize.send(Input::Resize(size));
                         })
                         .on_drag(move |event| {
@@ -62,7 +61,7 @@ impl Component for Cube {
                         }
                         HStack(spacing: 12) {
                             Text("Speed")
-                            Slider($speed, min: -360, max: 360).frame(width: 220)
+                            Slider(speed, min: -360, max: 360).frame(width: 220)
                             Text(move || format!("{}°/s", speed.get() as i32)).frame(width: 64)
                         }
                         .padding(8)
@@ -82,7 +81,10 @@ impl Component for Cube {
 fn main() -> Result<ExitCode, Error> {
     App::new()
         .window(
-            WindowDesc::new("wgpu · Image (CPU copy)").size(640, 640),
+            WindowDesc::new("wgpu · Image (CPU copy)")
+                .size(640, 640)
+                .title_bar(TitleBar::Integrated)
+                .traffic_lights_position(14., 14.),
             Cube::new()?,
         )
         .run()

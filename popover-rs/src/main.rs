@@ -10,8 +10,8 @@ fn Editor(name: State<String>, shared: State<bool>, editing: State<bool>) -> imp
     elg! {
         VStack(alignment: .leading, spacing: 10) {
             Text("Rename").font(.headline)
-            TextField("Name", $name)
-            Toggle("Shared with the team", $shared)
+            TextField("Name", name)
+            Toggle("Shared with the team", shared)
             HStack {
                 Spacer()
                 Button("Done", move || editing.set(false))
@@ -35,11 +35,11 @@ fn PopoverApp() -> impl IntoView {
             HStack(spacing: 12) {
                 // The content closure builds the panel each time it opens.
                 Button("Edit…", move || editing.set(true))
-                    .popover($editing, move || elg! { Editor(name: name, shared: shared, editing: editing) })
-                Button(Image("info"), move || showing_info.update(|s| *s = !*s))
+                    .popover(editing,move || elg! { Editor(name: name, shared: shared, editing: editing) })
+                Button(Image("info"), move || showing_info.toggle())
                     .button_style(PlainButtonStyle)
                     .accessibility_label("About")
-                    .popover($showing_info, || elg! {
+                    .popover(showing_info,|| elg! {
                         Text("Popovers close when you click elsewhere or press Esc.").frame(width: 200)
                     }, opens: .trailing)
             }

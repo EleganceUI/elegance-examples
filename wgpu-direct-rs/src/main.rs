@@ -63,7 +63,7 @@ impl Component for Cube {
                         }
                         HStack(spacing: 12) {
                             Text("Speed")
-                            Slider($speed, min: -360, max: 360).frame(width: 220)
+                            Slider(speed, min: -360, max: 360).frame(width: 220)
                             Text(move || format!("{}°/s", speed.get() as i32)).frame(width: 64)
                         }
                         .padding(8)

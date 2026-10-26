@@ -76,7 +76,7 @@ fn blur() -> impl IntoView {
                 { backdrop() }.frame(height: 110).corner_radius(16).blur(radius)
                 HStack {
                     Text("Radius")
-                    Slider($radius, min: 0, max: 30)
+                    Slider(radius,min: 0, max: 30)
                 }
             }
         },

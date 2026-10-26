@@ -14,6 +14,7 @@ reload and previews.
 | minimal | [✓](minimal-cpp) | | The smallest app: one window, an icon and two lines of text |
 | counter | [✓](counter-cpp) | [✓](counter-rs) | State and reactive arguments |
 | todos | [✓](todos-cpp) | [✓](todos-rs) | A list in state: ForEach, If, a computed count, animated insertions |
+| components | | [✓](components-rs) | Custom components and every kind of prop: defaults, Option, reactive, two-way, callbacks, children, leading-dot enums, a modifier with named arguments |
 | layout | [✓](layout-cpp) | | Stacks, spacers, frames, overlays, and a custom flow layout |
 | styling | [✓](styling-cpp) | | A custom theme, light and dark mode, a button style, a view modifier |
 | drawing | [✓](drawing-cpp) | | Gradients, strokes, an SVG path, a computed shape, a Canvas chart |

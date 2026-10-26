@@ -1,0 +1,12 @@
+# components: Custom components and props, every kind there is.
+# A complete project: copy this folder to start an app (see the README one folder up).
+
+[package]
+name = "components"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[dependencies]
+elegance = { git = "https://github.com/EleganceUI/elegance-rs" }

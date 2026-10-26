@@ -137,6 +137,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "components"
+version = "0.1.0"
+dependencies = [
+ "elegance",
+]
+
+[[package]]
 name = "counter"
 version = "0.1.0"
 dependencies = [
@@ -216,7 +223,6 @@ dependencies = [
 [[package]]
 name = "elegance"
 version = "0.2.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1242af098a38ef60956a329fac37ac02a4618d63"
 dependencies = [
  "elegance-macros",
  "elegance-sys",
@@ -226,7 +232,6 @@ dependencies = [
 [[package]]
 name = "elegance-macros"
 version = "0.2.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1242af098a38ef60956a329fac37ac02a4618d63"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -236,7 +241,6 @@ dependencies = [
 [[package]]
 name = "elegance-sys"
 version = "0.2.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1242af098a38ef60956a329fac37ac02a4618d63"
 dependencies = [
  "cc",
  "sha2",
@@ -245,7 +249,6 @@ dependencies = [
 [[package]]
 name = "elegance-wgpu"
 version = "0.1.0"
-source = "git+https://github.com/EleganceUI/elegance-rs#1242af098a38ef60956a329fac37ac02a4618d63"
 dependencies = [
  "ash",
  "elegance",
@@ -255,7 +258,7 @@ dependencies = [
  "objc2-core-foundation",
  "objc2-io-surface",
  "objc2-metal",
- "wgpu 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
+ "wgpu 30.0.1",
  "windows",
 ]
 
@@ -531,6 +534,30 @@ checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 [[package]]
 name = "naga"
 version = "30.0.1"
+dependencies = [
+ "arrayvec",
+ "bit-set",
+ "bitflags",
+ "cfg-if",
+ "cfg_aliases",
+ "codespan-reporting",
+ "half",
+ "hashbrown 0.17.1",
+ "indexmap",
+ "libm",
+ "log",
+ "naga-types 30.0.1",
+ "num-traits",
+ "once_cell",
+ "rustc-hash",
+ "spirv",
+ "thiserror",
+ "unicode-ident",
+]
+
+[[package]]
+name = "naga"
+version = "30.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a616d2fb8c89516ac2723a581f69d6c18576046bed761bd6b305e5618e6ae130"
 dependencies = [
@@ -555,28 +582,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "naga"
+name = "naga-types"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1242af098a38ef60956a329fac37ac02a4618d63"
 dependencies = [
- "arrayvec",
- "bit-set",
- "bitflags",
- "cfg-if",
- "cfg_aliases",
- "codespan-reporting",
- "half",
  "hashbrown 0.17.1",
  "indexmap",
- "libm",
- "log",
- "naga-types 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "num-traits",
- "once_cell",
  "rustc-hash",
- "spirv",
  "thiserror",
- "unicode-ident",
 ]
 
 [[package]]
@@ -584,17 +596,6 @@ name = "naga-types"
 version = "30.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "590afbf58a6f4f62873cd5cff4468061844bafa1cdf399cc954537c22d768d49"
-dependencies = [
- "hashbrown 0.17.1",
- "indexmap",
- "rustc-hash",
- "thiserror",
-]
-
-[[package]]
-name = "naga-types"
-version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1242af098a38ef60956a329fac37ac02a4618d63"
 dependencies = [
  "hashbrown 0.17.1",
  "indexmap",
@@ -1148,6 +1149,33 @@ dependencies = [
 [[package]]
 name = "wgpu"
 version = "30.0.1"
+dependencies = [
+ "arrayvec",
+ "bitflags",
+ "bytemuck",
+ "cfg-if",
+ "cfg_aliases",
+ "document-features",
+ "hashbrown 0.17.1",
+ "js-sys",
+ "log",
+ "parking_lot",
+ "portable-atomic",
+ "profiling",
+ "raw-window-handle",
+ "smallvec",
+ "static_assertions",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "wgpu-core 30.0.1",
+ "wgpu-hal 30.0.1",
+ "wgpu-types 30.0.1",
+]
+
+[[package]]
+name = "wgpu"
+version = "30.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "527ccdf43dd5b2e8676eed9984ce00e2bbb0a1b85b70c1969dcb6cd2eb55ab9e"
 dependencies = [
@@ -1176,31 +1204,34 @@ dependencies = [
 ]
 
 [[package]]
-name = "wgpu"
+name = "wgpu-core"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1242af098a38ef60956a329fac37ac02a4618d63"
 dependencies = [
  "arrayvec",
+ "bit-set",
+ "bit-vec",
  "bitflags",
  "bytemuck",
- "cfg-if",
  "cfg_aliases",
  "document-features",
  "hashbrown 0.17.1",
- "js-sys",
+ "indexmap",
  "log",
+ "naga 30.0.1",
+ "naga-types 30.0.1",
+ "once_cell",
  "parking_lot",
  "portable-atomic",
  "profiling",
  "raw-window-handle",
+ "rustc-hash",
  "smallvec",
- "static_assertions",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "wgpu-core 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "wgpu-hal 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "wgpu-types 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
+ "thiserror",
+ "wgpu-core-deps-apple 30.0.1",
+ "wgpu-core-deps-windows-linux-android 30.0.1",
+ "wgpu-hal 30.0.1",
+ "wgpu-naga-bridge 30.0.1",
+ "wgpu-types 30.0.1",
 ]
 
 [[package]]
@@ -1238,35 +1269,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "wgpu-core"
+name = "wgpu-core-deps-apple"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1242af098a38ef60956a329fac37ac02a4618d63"
 dependencies = [
- "arrayvec",
- "bit-set",
- "bit-vec",
- "bitflags",
- "bytemuck",
- "cfg_aliases",
- "document-features",
- "hashbrown 0.17.1",
- "indexmap",
- "log",
- "naga 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "naga-types 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "once_cell",
- "parking_lot",
- "portable-atomic",
- "profiling",
- "raw-window-handle",
- "rustc-hash",
- "smallvec",
- "thiserror",
- "wgpu-core-deps-apple 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "wgpu-core-deps-windows-linux-android 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "wgpu-hal 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "wgpu-naga-bridge 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "wgpu-types 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
+ "wgpu-hal 30.0.1",
 ]
 
 [[package]]
@@ -1276,14 +1282,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "061f3d319a40d39d00b1ecc2c33b89fe21d4e6fe01859df3500a3a8ecccd6b68"
 dependencies = [
  "wgpu-hal 30.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "wgpu-core-deps-apple"
-version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1242af098a38ef60956a329fac37ac02a4618d63"
-dependencies = [
- "wgpu-hal 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
 ]
 
 [[package]]
@@ -1298,18 +1296,17 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-windows-linux-android"
 version = "30.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7586165fd5f6d881cb9ce4bb71f40d6caab2c0f1837e3fc1d9788a197fb6004f"
 dependencies = [
- "wgpu-hal 30.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wgpu-hal 30.0.1",
 ]
 
 [[package]]
 name = "wgpu-core-deps-windows-linux-android"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1242af098a38ef60956a329fac37ac02a4618d63"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7586165fd5f6d881cb9ce4bb71f40d6caab2c0f1837e3fc1d9788a197fb6004f"
 dependencies = [
- "wgpu-hal 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
+ "wgpu-hal 30.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1319,6 +1316,51 @@ dependencies = [
  "elegance",
  "elegance-wgpu",
  "pollster",
+]
+
+[[package]]
+name = "wgpu-hal"
+version = "30.0.1"
+dependencies = [
+ "android_system_properties",
+ "arrayvec",
+ "ash",
+ "bit-set",
+ "bitflags",
+ "block2",
+ "bytemuck",
+ "cfg-if",
+ "cfg_aliases",
+ "gpu-allocator",
+ "hashbrown 0.17.1",
+ "libc",
+ "libloading",
+ "log",
+ "naga 30.0.1",
+ "naga-types 30.0.1",
+ "objc2",
+ "objc2-core-foundation",
+ "objc2-core-graphics",
+ "objc2-foundation",
+ "objc2-metal",
+ "objc2-quartz-core",
+ "once_cell",
+ "ordered-float",
+ "parking_lot",
+ "portable-atomic",
+ "portable-atomic-util",
+ "profiling",
+ "range-alloc",
+ "raw-window-handle",
+ "raw-window-metal",
+ "renderdoc-sys",
+ "smallvec",
+ "static_assertions",
+ "thiserror",
+ "wgpu-naga-bridge 30.0.1",
+ "wgpu-types 30.0.1",
+ "windows",
+ "windows-core",
 ]
 
 [[package]]
@@ -1378,58 +1420,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "wgpu-hal"
-version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1242af098a38ef60956a329fac37ac02a4618d63"
-dependencies = [
- "android_system_properties",
- "arrayvec",
- "ash",
- "bit-set",
- "bitflags",
- "block2",
- "bytemuck",
- "cfg-if",
- "cfg_aliases",
- "gpu-allocator",
- "hashbrown 0.17.1",
- "libc",
- "libloading",
- "log",
- "naga 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "naga-types 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "objc2",
- "objc2-core-foundation",
- "objc2-core-graphics",
- "objc2-foundation",
- "objc2-metal",
- "objc2-quartz-core",
- "once_cell",
- "ordered-float",
- "parking_lot",
- "portable-atomic",
- "portable-atomic-util",
- "profiling",
- "range-alloc",
- "raw-window-handle",
- "raw-window-metal",
- "renderdoc-sys",
- "smallvec",
- "static_assertions",
- "thiserror",
- "wgpu-naga-bridge 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "wgpu-types 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "windows",
- "windows-core",
-]
-
-[[package]]
 name = "wgpu-image"
 version = "0.1.0"
 dependencies = [
  "elegance",
  "pollster",
  "wgpu 30.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "wgpu-naga-bridge"
+version = "30.0.1"
+dependencies = [
+ "naga 30.0.1",
+ "wgpu-types 30.0.1",
 ]
 
 [[package]]
@@ -1443,12 +1447,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "wgpu-naga-bridge"
+name = "wgpu-types"
 version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1242af098a38ef60956a329fac37ac02a4618d63"
 dependencies = [
- "naga 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
- "wgpu-types 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
+ "bitflags",
+ "bytemuck",
+ "js-sys",
+ "log",
+ "naga-types 30.0.1",
+ "raw-window-handle",
+ "static_assertions",
+ "web-sys",
 ]
 
 [[package]]
@@ -1462,21 +1471,6 @@ dependencies = [
  "js-sys",
  "log",
  "naga-types 30.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "raw-window-handle",
- "static_assertions",
- "web-sys",
-]
-
-[[package]]
-name = "wgpu-types"
-version = "30.0.1"
-source = "git+https://github.com/EleganceUI/elegance-rs#1242af098a38ef60956a329fac37ac02a4618d63"
-dependencies = [
- "bitflags",
- "bytemuck",
- "js-sys",
- "log",
- "naga-types 30.0.1 (git+https://github.com/EleganceUI/elegance-rs)",
  "raw-window-handle",
  "static_assertions",
  "web-sys",
