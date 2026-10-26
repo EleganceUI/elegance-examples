@@ -56,6 +56,7 @@ public:
                 actions_.changed({event.location.x - start_.x, event.location.y - start_.y});
             }
             return {.consumed = true, .redraw = true};
+        case PointerEvent::Kind::hover: return {}; // only presses drag
         case PointerEvent::Kind::up:
         case PointerEvent::Kind::cancel:
             if (!dragging_) {

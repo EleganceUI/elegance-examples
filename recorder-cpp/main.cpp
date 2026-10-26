@@ -9,6 +9,8 @@
 
 using namespace elg;
 
+namespace {
+
 struct Memo {
     int id = 0;
     double seconds = 0;
@@ -80,6 +82,8 @@ View CameraPanel() {
                   If([=] { return !camera.error().empty(); },
                      Text([=] { return camera.error(); }).foreground_style(ThemeColor::danger)));
 }
+
+} // namespace
 
 int main() {
     App app;

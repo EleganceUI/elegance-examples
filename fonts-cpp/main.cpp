@@ -10,6 +10,8 @@
 
 using namespace elg;
 
+namespace {
+
 constexpr const char* kPangram = "The quick brown fox jumps over the lazy dog";
 
 View Section(std::string title, View content) {
@@ -82,6 +84,8 @@ View Italics() {
                           Text(kPangram).font(Font::system(20).italic()),
                           Text(kPangram).font(Font::system(20, Weight::bold).italic())));
 }
+
+} // namespace
 
 int main() {
     App app;

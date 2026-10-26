@@ -8,6 +8,8 @@
 
 using namespace elg;
 
+namespace {
+
 View PopoverApp() {
     const State<bool> editing(false);
     const State<bool> showing_info(false);
@@ -41,6 +43,8 @@ View PopoverApp() {
         .padding(24)
         .frame({.max_width = infinity, .max_height = infinity});
 }
+
+} // namespace
 
 int main() {
     App app;

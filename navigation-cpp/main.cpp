@@ -9,6 +9,8 @@
 
 using namespace elg;
 
+namespace {
+
 struct Note {
     int id = 0;
     std::string folder;
@@ -109,6 +111,8 @@ View NotesApp() {
     return VStack({.spacing = 0}, toolbar, Divider(),
                   NavigationSplitView(sidebar_view, detail, {.sidebar_visible = sidebar.binding()}));
 }
+
+} // namespace
 
 int main() {
     App app;

@@ -8,6 +8,8 @@
 
 using namespace elg;
 
+namespace {
+
 // --- A button style: controls keep their behavior, the style decides how they look ---
 
 struct PillButtonStyle : ButtonStyle {
@@ -90,6 +92,8 @@ View Settings() {
         .theme(purple_theme())
         .color_scheme([=] { return dark() ? ColorScheme::dark : ColorScheme::light; });
 }
+
+} // namespace
 
 int main() {
     App app;

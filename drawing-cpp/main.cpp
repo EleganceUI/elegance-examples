@@ -9,6 +9,8 @@
 
 using namespace elg;
 
+namespace {
+
 View Shapes() {
     return HStack({.spacing = 20},
                   Circle().fill(LinearGradient({Color::hex(0xF7768E), Color::hex(0xFF9E64)})),
@@ -63,6 +65,8 @@ View Gallery() {
                   Text("Canvas").font(Font::headline), Chart())
         .padding(24);
 }
+
+} // namespace
 
 int main() {
     App app;

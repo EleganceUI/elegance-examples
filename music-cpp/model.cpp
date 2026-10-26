@@ -222,7 +222,7 @@ void Model::new_playlist() const {
     for (const Playlist& p : playlists.peek()) {
         id = std::max(id, p.id + 1);
     }
-    const std::string name = std::format("Untitled Playlist {}", id - starting_playlists().size());
+    const std::string name = std::format("Untitled Playlist {}", id - static_cast<int>(starting_playlists().size()));
     playlists.update([&](std::vector<Playlist>& all) { all.push_back({id, name, "", {}}); });
     select({Section::Kind::playlist, id});
 }

@@ -9,6 +9,8 @@
 
 using namespace elg;
 
+namespace {
+
 // The video being shown. A ForEach keyed by `id` builds a new player for each file opened.
 struct Opened {
     int id = 0;
@@ -64,6 +66,8 @@ View Player() {
                       },
                   .targeted = [=](bool on) { targeted = on; }});
 }
+
+} // namespace
 
 int main() {
     App app;

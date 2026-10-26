@@ -10,6 +10,8 @@
 
 using namespace elg;
 
+namespace {
+
 // A custom layout: children left to right, wrapping into rows. Used like a stack:
 // FlowLayout(6)(a, b, c) or FlowLayout()(std::vector<View>{...}).
 class FlowLayout : public Layout {
@@ -93,6 +95,8 @@ View ProfileCard() {
         .background(ThemeColor::surface, RoundedRectangle(16))
         .frame({.max_width = 420});
 }
+
+} // namespace
 
 int main() {
     App app;

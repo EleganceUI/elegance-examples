@@ -36,8 +36,7 @@ add_executable(fonts
 target_link_libraries(fonts PRIVATE Elegance::Elegance)
 elegance_application(fonts)
 
+# Strict warnings come with elegance_application(); MSVC also needs to read the sources as UTF-8.
 if (MSVC)
-    target_compile_options(fonts PRIVATE /W4 /permissive- /utf-8)
-else ()
-    target_compile_options(fonts PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(fonts PRIVATE /utf-8)
 endif ()

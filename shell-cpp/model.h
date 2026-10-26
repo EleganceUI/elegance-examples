@@ -153,6 +153,10 @@ private:
 elg::Font monospace(float size);
 
 double seconds_now();
+// `format` is strftime's; GCC and Clang check it at each call.
+#if defined(__GNUC__)
+__attribute__((format(strftime, 2, 0)))
+#endif
 std::string format_time(std::time_t time, const char* format);
 
 } // namespace shell

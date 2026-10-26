@@ -6,6 +6,8 @@
 
 using namespace elg;
 
+namespace {
+
 View TitleBarView() {
     const auto window = Environment<WindowKey>();
     return HStack({.spacing = 8},
@@ -34,6 +36,8 @@ View Notes() {
                     RoundedRectangle(12))
         .overlay(RoundedRectangle(12).stroke_border(ThemeColor::outline));
 }
+
+} // namespace
 
 int main() {
     App app;

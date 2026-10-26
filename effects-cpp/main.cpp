@@ -9,6 +9,8 @@
 
 using namespace elg;
 
+namespace {
+
 // Something colorful to put effects over.
 View Backdrop() {
     return ZStack(Rectangle().fill(AngularGradient({Color::hex(0xFF5F6D), Color::hex(0xFFC371), Color::hex(0x47CF73),
@@ -151,6 +153,8 @@ View TransformsAndMasks() {
                Caption(Backdrop().frame(64, 64).clipped().mask(Image("heart").font(Font::system(60))), "icon mask"),
                Caption(Backdrop().frame(120, 64).clipped().compositing_group().opacity(0.4f), "group opacity")));
 }
+
+} // namespace
 
 int main() {
     App app;

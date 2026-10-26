@@ -25,10 +25,6 @@ struct Overlay {
     State<std::vector<std::pair<Point, Point>>> guides;      // canvas
 };
 
-bool inside(Rect r, Point p) {
-    return p.x >= r.x && p.y >= r.y && p.x <= r.max_x() && p.y <= r.max_y();
-}
-
 bool intersects(Rect a, Rect b) {
     return a.x <= b.max_x() && b.x <= a.max_x() && a.y <= b.max_y() && b.y <= a.max_y();
 }

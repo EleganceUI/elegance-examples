@@ -8,6 +8,8 @@
 
 using namespace elg;
 
+namespace {
+
 // A quote from GitHub's API, with a button to fetch another.
 View Quote() {
     const http::Fetch zen({.url = "https://api.github.com/zen", .headers = {{"User-Agent", "elegance-example"}}});
@@ -46,6 +48,8 @@ View Feed() {
                   List(ForEach(ids, [](int id) { return Photo(id); })))
         .padding(20);
 }
+
+} // namespace
 
 int main() {
     App app;
