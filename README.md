@@ -19,6 +19,7 @@ reload and previews.
 | drawing | [✓](drawing-cpp) | | Gradients, strokes, an SVG path, a computed shape, a Canvas chart |
 | animation | [✓](animation-cpp) | | Transitions, an implicit spring, tiles that slide to new places |
 | effects | [✓](effects-cpp) | [✓](effects-rs) | Materials, blur, color adjustments, blend modes, shadows, masks |
+| fonts | [✓](fonts-cpp) | | The system font's weights, any weight between them (variable fonts), sizes, italics |
 | grids | [✓](grids-cpp) | [✓](grids-rs) | An adaptive VGrid of cards, and a Grid table |
 | popover | [✓](popover-cpp) | [✓](popover-rs) | Panels shown beside a view while a binding is true |
 | navigation | [✓](navigation-cpp) | | NavigationSplitView, NavigationStack, VSplitView |
