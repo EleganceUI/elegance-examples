@@ -582,7 +582,7 @@ View NotesApp(const Desktop& d, const Window& w) {
         return VStack({.alignment = HorizontalAlignment::leading, .spacing = 10},
                       TextField("Title", field(&Note::title)).text_field_style(PlainTextFieldStyle{}).font(Font::system(20, Weight::bold)),
                       Divider(),
-                      ScrollView(TextField("Start writing...", field(&Note::body), {.max_lines = 400})
+                      ScrollView(TextArea("Start writing...", field(&Note::body))
                                      .text_field_style(PlainTextFieldStyle{})
                                      .font(Font::system(15))
                                      .frame({.max_width = infinity, .alignment = Alignment::top_leading})))

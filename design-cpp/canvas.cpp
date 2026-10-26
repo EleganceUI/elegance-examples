@@ -961,7 +961,7 @@ View TextEditor(const Document& doc) {
                 untrack(finish);
             }
         });
-        return View(TextField("Type something", text, {.on_submit = finish, .max_lines = 20})
+        return View(TextField("Type something", text, {.on_submit = finish, .line_limit = 20})
                         .text_field_style(PlainTextFieldStyle{})
                         .font([=] { return Font::system(std::max(size * doc.zoom(), 4.f), bold ? Weight::bold : Weight::regular); })
                         .foreground_style(color)

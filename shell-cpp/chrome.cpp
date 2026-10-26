@@ -624,7 +624,7 @@ View LoginScreen(const Desktop& d) {
         VStack({.spacing = 14}, Avatar(d, 96).shadow({.color = Color::black.opacity(0.3f), .radius = 14, .y = 4}),
                Text([s = d.settings] { return s.user_name(); }).font(Font::system(24, Weight::semibold)),
                HStack({.spacing = 8},
-                      SecureField("Password", password.binding(), {.on_submit = submit})
+                      TextField("Password", password.binding(), {.on_submit = submit, .secure = true})
                           .focused(focused.binding())
                           .frame({.width = 240}),
                       Button(Image("arrow-right").font(Font::system(16, Weight::bold)).padding(8), submit)
