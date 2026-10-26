@@ -9,6 +9,8 @@
 
 using namespace elg;
 
+namespace {
+
 struct Game {
     int id = 0;
     std::string name;
@@ -53,6 +55,8 @@ View GridsApp() {
                              Text("Details").font(Font::title2), table)
                           .padding(24));
 }
+
+} // namespace
 
 int main() {
     App app;

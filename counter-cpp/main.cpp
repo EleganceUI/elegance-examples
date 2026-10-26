@@ -8,6 +8,8 @@
 
 using namespace elg;
 
+namespace {
+
 View Counter() {
     const State<int> count(0);
 
@@ -21,6 +23,8 @@ View Counter() {
                   Text([=] { return count() % 2 == 0 ? "even" : "odd"; })
                       .foreground_style(ThemeColor::secondary));
 }
+
+} // namespace
 
 int main() {
     App app;

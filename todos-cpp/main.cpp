@@ -10,6 +10,8 @@
 
 using namespace elg;
 
+namespace {
+
 struct Todo {
     int id = 0;
     std::string title;
@@ -81,6 +83,8 @@ View TodoApp() {
         .padding(24)
         .frame({.max_width = infinity, .max_height = infinity, .alignment = Alignment::top_leading});
 }
+
+} // namespace
 
 int main() {
     App app;

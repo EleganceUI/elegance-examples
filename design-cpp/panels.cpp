@@ -529,6 +529,8 @@ View Toolbar(const Document &doc, State<Size> viewport) {
 
 // --- Layers ---
 
+namespace {
+
 View LayerRow(const Document &doc, const LayerEntry &entry,
               State<std::set<int>> collapsed) {
   const Node &n = entry.node;
@@ -624,6 +626,8 @@ View LayerRow(const Document &doc, const LayerEntry &entry,
       .on_tap_gesture([=] { renaming = true; }, 2)
       .on_tap_gesture([=] { doc.selection = std::vector<int>{id}; });
 }
+
+} // namespace
 
 View LayersPanel(const Document &doc) {
   const State<std::set<int>> collapsed;
@@ -888,10 +892,10 @@ View SelectionProperties(const Document &doc) {
                                     });
                                   }))));
   const auto toggle_row =
-      [=](std::string title, std::function<bool(const Node &)> on,
+      [=](std::string heading, std::function<bool(const Node &)> on,
           std::function<void(Node &, bool)> set, View content) {
         return Section(
-            std::move(title),
+            std::move(heading),
             VStack({.spacing = 8},
                    Toggle("Enabled", Binding<bool>([=] { return on(first()); },
                                                    [=](bool value) {

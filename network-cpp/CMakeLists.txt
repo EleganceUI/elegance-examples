@@ -36,8 +36,7 @@ add_executable(network
 target_link_libraries(network PRIVATE Elegance::Elegance)
 elegance_application(network)
 
+# Strict warnings come with elegance_application(); MSVC also needs to read the sources as UTF-8.
 if (MSVC)
-    target_compile_options(network PRIVATE /W4 /permissive- /utf-8)
-else ()
-    target_compile_options(network PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(network PRIVATE /utf-8)
 endif ()

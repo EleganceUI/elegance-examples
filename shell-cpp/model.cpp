@@ -69,7 +69,15 @@ std::string format_time(std::time_t time, const char* format) {
     localtime_r(&time, &local);
 #endif
     char buffer[64];
+    // The callers' formats are checked where they're written (format_time's attribute, model.h).
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
     std::strftime(buffer, sizeof buffer, format, &local);
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
     return buffer;
 }
 

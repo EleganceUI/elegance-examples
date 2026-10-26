@@ -955,7 +955,7 @@ void Document::zoom_to_fit(Size viewport) const {
 }
 
 void Document::load_sample() const {
-    const auto shape = [&](Kind kind, int parent, float x, float y, float w, float h, Color fill, std::string name = {}) {
+    const auto shape = [&](Kind kind, int parent, float x, float y, float w, float h, Color fill, std::string label = {}) {
         Node n;
         n.kind = kind;
         n.parent = parent;
@@ -964,7 +964,7 @@ void Document::load_sample() const {
         n.w = w;
         n.h = h;
         n.fill = fill;
-        n.name = std::move(name);
+        n.name = std::move(label);
         return n;
     };
     const auto text = [&](int parent, float x, float y, std::string content, float size, Color color, bool bold) {

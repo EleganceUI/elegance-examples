@@ -9,6 +9,8 @@
 
 using namespace elg;
 
+namespace {
+
 // A banner that slides in from the top and fades out.
 View BannerDemo() {
     const State<bool> shown(false);
@@ -53,9 +55,11 @@ View ShuffleDemo() {
                           .font(Font::title3)
                           .foreground_style(Color::white)
                           .frame(48, 48)
-                          .background(Color::hex(0x7AA2F7).mix(Color::hex(0xBB9AF7), n / 6.f), RoundedRectangle(10));
+                          .background(Color::hex(0x7AA2F7).mix(Color::hex(0xBB9AF7), static_cast<float>(n) / 6.f), RoundedRectangle(10));
                   })));
 }
+
+} // namespace
 
 int main() {
     App app;

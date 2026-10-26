@@ -60,7 +60,7 @@ View NowPlaying(const Model& model, int track_id) {
     const Track& t = track(track_id);
     const double length = t.seconds;
     const Binding<float> progress([=] { return static_cast<float>(player.position() / length); },
-                                  [=](float fraction) { player.seek(fraction * length); });
+                                  [=](float fraction) { player.seek(static_cast<double>(fraction) * length); });
     const int album_id = t.album;
     return HStack({.spacing = 10},
                   AlbumArtwork(t.album, 4).frame(42, 42).on_tap_gesture([=] {

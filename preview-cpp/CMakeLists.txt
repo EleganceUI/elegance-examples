@@ -46,10 +46,10 @@ else ()
     set(preview_targets preview)
 endif ()
 
-foreach (target IN LISTS preview_targets)
-    if (MSVC)
-        target_compile_options(${target} PRIVATE /W4 /permissive- /utf-8)
-    else ()
-        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
-    endif ()
-endforeach ()
+# Strict warnings come with elegance_application() and elegance_views_module(); MSVC also needs to
+# read the sources as UTF-8.
+if (MSVC)
+    foreach (target IN LISTS preview_targets)
+        target_compile_options(${target} PRIVATE /utf-8)
+    endforeach ()
+endif ()

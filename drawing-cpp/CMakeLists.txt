@@ -36,8 +36,7 @@ add_executable(drawing
 target_link_libraries(drawing PRIVATE Elegance::Elegance)
 elegance_application(drawing)
 
+# Strict warnings come with elegance_application(); MSVC also needs to read the sources as UTF-8.
 if (MSVC)
-    target_compile_options(drawing PRIVATE /W4 /permissive- /utf-8)
-else ()
-    target_compile_options(drawing PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(drawing PRIVATE /utf-8)
 endif ()

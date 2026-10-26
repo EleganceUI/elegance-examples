@@ -11,6 +11,8 @@
 
 using namespace elg;
 
+namespace {
+
 // The tray icon shows while `tray` holds it (main keeps it for the app's lifetime).
 View Desktop(App& app, std::optional<TrayIcon>& tray) {
     const State<std::vector<std::filesystem::path>> files;
@@ -76,6 +78,8 @@ View Desktop(App& app, std::optional<TrayIcon>& tray) {
         .padding(24)
         .frame({.max_width = infinity, .max_height = infinity, .alignment = Alignment::top_leading});
 }
+
+} // namespace
 
 int main() {
     App app;

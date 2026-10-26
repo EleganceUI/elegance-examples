@@ -12,7 +12,7 @@
 #include <cstdio>
 #include <string_view>
 
-#if ELG_PREVIEW_HOT_RELOAD
+#if defined(ELG_PREVIEW_HOT_RELOAD)
 #include "preview_hot_reload.h"
 #else
 extern "C" const elg::ModuleEntry *elg_module_entry();
@@ -20,7 +20,7 @@ extern "C" const elg::ModuleEntry *elg_module_entry();
 
 int main(int argc, char **argv) {
   elg::App app;
-#if ELG_PREVIEW_HOT_RELOAD
+#if defined(ELG_PREVIEW_HOT_RELOAD)
   elg::HotReloadOptions options = elg_hot_reload_options();
   if (argc > 1 && std::string_view(argv[1]) == "--previews") {
     options.show = elg::HotReloadShow::previews;

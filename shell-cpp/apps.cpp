@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <format>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -273,8 +274,8 @@ struct FileItem {
     std::string name;
     std::string icon;
     std::string detail;
-    std::string folder;  // set for folders: where it leads
-    int note = 0;        // set for text files: the note it opens
+    std::string folder{}; // set for folders: where it leads
+    int note = 0;         // set for text files: the note it opens
     friend bool operator==(const FileItem&, const FileItem&) = default;
 };
 
@@ -624,7 +625,7 @@ struct Calculator {
         case '+': return a + b;
         case '-': return a - b;
         case '*': return a * b;
-        case '/': return b == 0 ? NAN : a / b;
+        case '/': return b == 0 ? std::numeric_limits<double>::quiet_NaN() : a / b;
         default: return b;
         }
     }
