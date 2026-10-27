@@ -194,7 +194,7 @@ View WindowView(const Desktop& desktop, int id) {
                                   w.height = std::clamp(start_size->height + delta.y, kMinWindowHeight, area.height - w.y.peek());
                               });
                           }})
-               .help("Resize"));
+               .tooltip("Resize"));
 
     // An inactive window's first click on its content brings it forward (title bars do that
     // themselves, and still drag).
@@ -377,7 +377,7 @@ View Tray(const Desktop& d) {
                       });
                   })
         .button_style(HoverButtonStyle(6, [=] { return d.quick_settings_open(); }))
-        .help("Quick settings");
+        .tooltip("Quick settings");
 }
 
 View TopBar(const Desktop& d) {
@@ -407,7 +407,7 @@ View TopBar(const Desktop& d) {
                              .padding(EdgeInsets::symmetric(8, 3)),
                          [=] { d.notify("Notifications", "You're all caught up.", "check-circle"); })
                       .button_style(HoverButtonStyle(6))
-                      .help("Notifications"))
+                      .tooltip("Notifications"))
         .padding(EdgeInsets::symmetric(6, 0))
         .frame({.max_width = infinity, .min_height = kTopBarHeight, .max_height = kTopBarHeight})
         .overlay(clock)
@@ -470,7 +470,7 @@ View Launcher(const Desktop& d) {
     const auto power_button = [](std::string icon, std::string label, std::function<void()> action) {
         return Button(Image(std::move(icon)).font(Font::system(18)).padding(8), std::move(action))
             .button_style(HoverButtonStyle(8))
-            .help(label)
+            .tooltip(label)
             .accessibility_label(label);
     };
     App* const app = d.app;
@@ -555,10 +555,10 @@ View QuickSettings(const Desktop& d) {
                                     d.open(AppKind::settings);
                                 })
                              .button_style(HoverButtonStyle(8))
-                             .help("All settings"),
+                             .tooltip("All settings"),
                          Button(Image("power").font(Font::system(16)).padding(6), [=] { d.lock(); })
                              .button_style(HoverButtonStyle(8))
-                             .help("Lock")))
+                             .tooltip("Lock")))
         .padding(16)
         .frame({.width = 380})
         .background([](const EnvironmentValues& env) { return glass(env, 0.95f); }, RoundedRectangle(14))
@@ -652,7 +652,7 @@ View LoginScreen(const Desktop& d) {
                                 Button(Image("power").font(Font::system(20)).foreground_style(Color::white).padding(10),
                                        [app] { app->quit(); })
                                     .button_style(HoverButtonStyle(10))
-                                    .help("Exit the demo"))
+                                    .tooltip("Exit the demo"))
                              .padding(24)))
         .content_shape(Rectangle())
         .transition(Transition::opacity());

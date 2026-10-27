@@ -360,7 +360,7 @@ View FilesApp(const Desktop& d) {
                       })
                    .button_style(HoverButtonStyle(6))
                    .disabled([=] { return path().size() <= 1; })
-                   .help("Back"),
+                   .tooltip("Back"),
                Text([=] {
                    std::string text;
                    for (const std::string& part : path()) {
@@ -564,7 +564,7 @@ View NotesApp(const Desktop& d, const Window& w) {
     const View list = Sidebar(VStack({.alignment = HorizontalAlignment::leading, .spacing = 2},
                                      HStack(Text("Notes").font(Font::system(13, Weight::semibold)).foreground_style(ThemeColor::secondary),
                                             Spacer(),
-                                            Button(Image("plus").padding(4), add).button_style(HoverButtonStyle(6)).help("New note"))
+                                            Button(Image("plus").padding(4), add).button_style(HoverButtonStyle(6)).tooltip("New note"))
                                          .padding(EdgeInsets{.leading = 8, .bottom = 6}),
                                      ForEach([=] { return notes(); }, &Note::id, [=](const Note& note) {
                                          const int id = note.id;

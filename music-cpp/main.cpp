@@ -35,7 +35,7 @@ View TransportControls(const Model& model) {
                   Button(Image("shuffle"), [=] { player.set_shuffle(!player.shuffle()); })
                       .button_style(IconButtonStyle(15, [=] { return player.shuffle(); }))
                       .accessibility_label("Shuffle")
-                      .help("Shuffle"),
+                      .tooltip("Shuffle"),
                   Button(Image("skip-back.fill"), [=] { player.previous(); })
                       .button_style(IconButtonStyle(18))
                       .accessibility_label("Previous"),
@@ -51,7 +51,7 @@ View TransportControls(const Model& model) {
                          [=] { player.cycle_repeat(); })
                       .button_style(IconButtonStyle(15, [=] { return player.repeat() != Repeat::off; }))
                       .accessibility_label("Repeat")
-                      .help("Repeat"));
+                      .tooltip("Repeat"));
 }
 
 // The display in the middle of the bar: what's playing, and how far along.
@@ -206,17 +206,17 @@ View PlayerBar(const Model& model) {
                                        [=] { with_animation(Animation::smooth(), [&] { sidebar = !sidebar(); }); })
                                     .button_style(IconButtonStyle(16))
                                     .accessibility_label("Sidebar")
-                                    .help("Show or hide the sidebar"),
+                                    .tooltip("Show or hide the sidebar"),
                                 TransportControls(model));
     const View trailing = HStack({.spacing = 6}, Volume(model),
                   Button(Image("quotes"), [=] { model.toggle_panel(Panel::lyrics); })
                       .button_style(IconButtonStyle(16, [=] { return panel() == Panel::lyrics; }))
                       .accessibility_label("Lyrics")
-                      .help("Lyrics"),
+                      .tooltip("Lyrics"),
                   Button(Image("list-bullets"), [=] { model.toggle_panel(Panel::queue); })
                       .button_style(IconButtonStyle(16, [=] { return panel() == Panel::queue; }))
                       .accessibility_label("Playing Next")
-                      .help("Playing Next"))
+                      .tooltip("Playing Next"))
                               // The caption buttons sit above this end of the bar, in the window's corner.
                               .padding(EdgeInsets{.trailing = kCaptionButtonsWidth});
     // With the sidebar hidden, the bar starts under the traffic lights: begin after them.
@@ -403,7 +403,7 @@ public:
                                      .button_style(IconButtonStyle(15))
                                      .disabled([can_go_back = stack.can_go_back] { return !can_go_back(); })
                                      .accessibility_label("Back")
-                                     .help("Back (Alt+Left)"),
+                                     .tooltip("Back (Alt+Left)"),
                                  Spacer())
                               .padding(EdgeInsets{.top = 6, .leading = 14})
                               .frame({.height = 40});
@@ -470,7 +470,7 @@ int main(int argc, char** argv) {
         const Model model;
         PlaybackClock clock(model.player);
         app.window({.title = "Music", .width = 1280, .height = 800, .min_size = Size{1040, 620},
-                    .title_bar = kTitleBar, .traffic_lights_position = kTrafficLights},
+                    .title_bar = kTitleBar, .system_controls_position = kTrafficLights},
                    [&] {
                        clock.follow();
                        if (!screen.empty()) {
