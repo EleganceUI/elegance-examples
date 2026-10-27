@@ -35,13 +35,14 @@ struct Glass {
     BackdropOptions backdrop;
     Color tint;
     std::string name;
+    Color label = Color::white; // readable on the tint, in either color scheme
 };
 
 View BackdropBlur() {
     const std::vector<Glass> panels{
         {8, {}, Color::clear, "blur 8"},
-        {30, {.saturation = 1.8f}, Color::white.opacity(0.2f), "30, saturated"},
-        {30, {.saturation = 1.8f, .noise = 0.02f}, Color::white.opacity(0.55f), "30, frosted"},
+        {30, {.saturation = 1.8f}, Color::white.opacity(0.2f), "30, saturated", Color::black},
+        {30, {.saturation = 1.8f, .noise = 0.02f}, Color::white.opacity(0.55f), "30, frosted", Color::black},
         {24, {.brightness = -0.25f}, Color::clear, "24, darker"},
         {40, {.saturation = 0.f}, Color::black.opacity(0.3f), "40, gray"},
     };
@@ -49,6 +50,7 @@ View BackdropBlur() {
     for (const Glass& glass : panels) {
         items.push_back(Text(glass.name)
                             .font(Font::caption)
+                            .foreground_style(glass.label)
                             .padding(10)
                             .frame({.max_width = infinity, .max_height = infinity})
                             .background(glass.tint, RoundedRectangle(12))
