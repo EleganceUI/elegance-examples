@@ -62,7 +62,7 @@ View FeatureCard(std::vector<Color> colors, std::string kicker, std::string titl
                  Alignment::bottom_leading)
         .shadow({.color = Color::black.opacity(0.25f), .radius = 10, .y = 4})
         .content_shape(RoundedRectangle(12))
-        .on_tap_gesture(std::move(open))
+        .on_click(std::move(open))
         .accessibility_element();
 }
 
@@ -84,7 +84,7 @@ View StationCard(const Model& model, const Station& station) {
                   Text(station.name).font(Font::subheadline).line_limit(1),
                   Text(station.tagline).font(Font::subheadline).foreground_style(ThemeColor::secondary).line_limit(1))
         .content_shape(Rectangle())
-        .on_tap_gesture([=] { player.play_shuffled(all_tracks()); })
+        .on_click([=] { player.play_shuffled(all_tracks()); })
         .accessibility_element();
 }
 
@@ -105,7 +105,7 @@ View ArtistCard(const Model& model, const Artist& a) {
                       .overlay(Text(initials).font(Font::system(34, Weight::bold)).foreground_style(Color::white.opacity(0.9f))),
                   Text(a.name).font(Font::subheadline).line_limit(1))
         .content_shape(Rectangle())
-        .on_tap_gesture([=] { model.open({Route::Kind::artist, id}); })
+        .on_click([=] { model.open({Route::Kind::artist, id}); })
         .accessibility_element();
 }
 

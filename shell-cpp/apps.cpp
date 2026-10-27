@@ -131,7 +131,7 @@ View AccentSwatch(const Settings& s, int index) {
             return s.accent() == index ? env.color(ThemeColor::primary) : Color::clear;
         }, 2))
         .content_shape(Circle())
-        .on_tap_gesture([=] { s.accent = index; })
+        .on_click([=] { s.accent = index; })
         .accessibility_label("Accent color " + std::to_string(index + 1));
 }
 
@@ -146,7 +146,7 @@ View WallpaperThumb(const Settings& s, int index) {
                       }, 3)),
                   Text(paper.name).font(Font::system(12)))
         .content_shape(Rectangle())
-        .on_tap_gesture([=] { s.wallpaper = index; });
+        .on_click([=] { s.wallpaper = index; });
 }
 
 View SettingsContent(const Desktop& d, int page) {
@@ -337,8 +337,8 @@ View FileTile(const Desktop& d, const FileItem& item, State<std::vector<std::str
             return selected() == name ? ShapeStyle(env.color(ThemeColor::accent).opacity(0.2f)) : ShapeStyle(Color::clear);
         }, RoundedRectangle(8))
         .content_shape(Rectangle())
-        .on_tap_gesture(open, 2)
-        .on_tap_gesture([=] { selected = name; })
+        .on_double_click(open)
+        .on_click([=] { selected = name; })
         .accessibility_element()
         .accessibility_action(open);
 }

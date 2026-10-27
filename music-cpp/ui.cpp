@@ -168,9 +168,8 @@ View AlbumCard(const Model& model, int album_id) {
         .content_shape(Rectangle())
         .on_pointer_enter([=] { hovered = true; })
         .on_pointer_leave([=] { hovered = false; })
-        .on_tap_gesture([=] { model.open({Route::Kind::album, album_id}); })
-        .accessibility_element()
-        .accessibility_action([=] { model.open({Route::Kind::album, album_id}); });
+        .on_activate([=] { model.open({Route::Kind::album, album_id}); })
+        .accessibility_element();
 }
 
 View Shelf(const Model& model, std::string title, std::vector<int> album_ids) {
@@ -307,7 +306,7 @@ View TrackRow(const Model& model, std::function<std::vector<int>()> list, std::s
             RoundedRectangle(6))
         .on_pointer_enter([=] { hovered = true; })
         .on_pointer_leave([=] { hovered = false; })
-        .on_tap_gesture(play, 2)
+        .on_double_click(play)
         .context_menu([=] { return TrackMenu(model, track_id); })
         .accessibility_element()
         .accessibility_action(play);

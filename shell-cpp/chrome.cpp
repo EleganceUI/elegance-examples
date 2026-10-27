@@ -250,8 +250,8 @@ View DesktopIcon(const Desktop& d, AppKind app, std::string label, State<int> se
             return is_selected() ? ShapeStyle(Color::white.opacity(0.22f)) : ShapeStyle(Color::clear);
         }, RoundedRectangle(8))
         .content_shape(Rectangle())
-        .on_tap_gesture([=] { d.open(app); }, 2)
-        .on_tap_gesture([=] { selected = index; })
+        .on_double_click([=] { d.open(app); })
+        .on_click([=] { selected = index; })
         .accessibility_element()
         .accessibility_action([=] { d.open(app); });
 }
@@ -266,7 +266,7 @@ View DesktopIcons(const Desktop& d) {
         .padding(20)
         .frame({.max_width = infinity, .max_height = infinity, .alignment = Alignment::top_leading})
         .content_shape(Rectangle())
-        .on_tap_gesture([=] {
+        .on_click([=] {
             selected = -1;
             d.launcher_open = false;
             d.quick_settings_open = false;
@@ -664,7 +664,7 @@ View DismissLayer(const Desktop& d) {
               Rectangle()
                   .fill(Color::clear)
                   .content_shape(Rectangle())
-                  .on_tap_gesture([=] {
+                  .on_click([=] {
                       with_animation(Animation::smooth(0.25), [&] {
                           d.launcher_open = false;
                           d.quick_settings_open = false;

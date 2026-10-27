@@ -63,7 +63,7 @@ View NowPlaying(const Model& model, int track_id) {
                                   [=](float fraction) { player.seek(static_cast<double>(fraction) * length); });
     const int album_id = t.album;
     return HStack({.spacing = 10},
-                  AlbumArtwork(t.album, 4).frame(42, 42).on_tap_gesture([=] {
+                  AlbumArtwork(t.album, 4).frame(42, 42).on_click([=] {
                       model.open({Route::Kind::album, album_id});
                   }),
                   VStack({.spacing = 0},
@@ -344,7 +344,7 @@ View LyricsFor(const Model& model, int track_id) {
                                          return env.color(ThemeColor::secondary).opacity(i < now ? 0.45f : 0.7f);
                                      })
                                      .animation(Animation::ease_out(0.3), line_now)
-                                     .on_tap_gesture([=] { player.seek(static_cast<double>(i) * per_line); });
+                                     .on_click([=] { player.seek(static_cast<double>(i) * per_line); });
                              }))
                           .padding(EdgeInsets{.top = 4, .leading = 20, .bottom = 40, .trailing = 20})
                           .frame({.max_width = infinity, .alignment = Alignment::leading}));

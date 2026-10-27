@@ -579,8 +579,8 @@ View LayerRow(const Document &doc, const LayerEntry &entry,
       .content_shape(Rectangle())
       .on_pointer_enter([=] { hovered = true; })
       .on_pointer_leave([=] { hovered = false; })
-      .on_tap_gesture([=] { renaming = true; }, 2)
-      .on_tap_gesture([=] { doc.selection = std::vector<int>{id}; });
+      .on_double_click([=] { renaming = true; })
+      .on_click([=] { doc.selection = std::vector<int>{id}; });
 }
 
 } // namespace

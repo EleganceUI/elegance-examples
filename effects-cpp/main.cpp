@@ -159,7 +159,7 @@ View TransformsAndMasks() {
                            .overlay(Text("Tap").foreground_style(Color::white))
                            .frame(64, 64)
                            .rotation_effect([=] { return turned() ? 135.f : 15.f; })
-                           .on_tap_gesture([=] { with_animation(Animation::spring(), [&] { turned = !turned(); }); }),
+                           .on_click([=] { with_animation(Animation::spring(), [&] { turned = !turned(); }); }),
                        "rotation_effect"),
                Caption(Text("Wide").font(Font::system(28, Weight::bold)).scale_effect(1.6f, 0.8f), "scale_effect"),
                Caption(Backdrop()

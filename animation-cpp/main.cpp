@@ -34,7 +34,7 @@ View SwitchDemo() {
                   Circle().fill(Color::white).frame(40, 40).padding(4).offset([=] { return on() ? 40.f : 0.f; }, 0.f))
         .frame(88, 48)
         .animation(Animation::spring(0.35, 0.7), on)
-        .on_tap_gesture([=] { on = !on(); })
+        .on_activate([=] { on = !on(); })
         .accessibility_element()
         .accessibility_role(AccessibilityRole::toggle)
         .accessibility_label("Demo switch");
