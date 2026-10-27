@@ -750,7 +750,7 @@ View StatCard(std::string title, std::function<std::string()> value, std::functi
     return VStack({.alignment = HorizontalAlignment::leading, .spacing = 6},
                   Text(std::move(title)).font(Font::system(12)).foreground_style(ThemeColor::secondary),
                   Text([=] { return value(); }).font(Font::system(20, Weight::semibold)),
-                  ProgressView([=] { return fraction(); }))
+                  Progress([=] { return fraction(); }))
         .padding(14)
         .frame({.max_width = infinity, .alignment = Alignment::leading})
         .background(ThemeColor::surface, RoundedRectangle(10));

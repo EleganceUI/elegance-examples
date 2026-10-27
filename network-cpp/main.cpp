@@ -16,7 +16,7 @@ View Quote() {
     return HStack({.spacing = 12},
                   Image("quotes").font(Font::title2).foreground_style(ThemeColor::accent),
                   If([=] { return zen.is_loading() && !zen.has_response(); },
-                     ProgressView().frame({.width = 120}),
+                     Progress().frame({.width = 120}),
                      Text([=] { return zen.ok() ? zen.response().text() : zen.error(); }).font(Font::title3)),
                   Spacer(),
                   Button(Image("arrow-clockwise"), [=] { zen.reload(); })
