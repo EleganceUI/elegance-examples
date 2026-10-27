@@ -166,7 +166,8 @@ View AlbumCard(const Model& model, int album_id) {
                   Text(a.title).font(Font::subheadline).line_limit(1),
                   Text(artist(a.artist).name).font(Font::subheadline).foreground_style(ThemeColor::secondary).line_limit(1))
         .content_shape(Rectangle())
-        .on_hover([=](bool inside) { hovered = inside; })
+        .on_pointer_enter([=] { hovered = true; })
+        .on_pointer_leave([=] { hovered = false; })
         .on_tap_gesture([=] { model.open({Route::Kind::album, album_id}); })
         .accessibility_element()
         .accessibility_action([=] { model.open({Route::Kind::album, album_id}); });
@@ -304,7 +305,8 @@ View TrackRow(const Model& model, std::function<std::vector<int>()> list, std::s
                 return hovered() ? env.color(ThemeColor::outline).opacity(0.45f) : Color::clear;
             },
             RoundedRectangle(6))
-        .on_hover([=](bool inside) { hovered = inside; }, HoverDelay{0, 0})
+        .on_pointer_enter([=] { hovered = true; })
+        .on_pointer_leave([=] { hovered = false; })
         .on_tap_gesture(play, 2)
         .context_menu([=] { return TrackMenu(model, track_id); })
         .accessibility_element()

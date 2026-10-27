@@ -312,7 +312,8 @@ View DockIcon(const Desktop& d, AppKind app) {
                   [=] { d.activate_app(app); })
         .button_style(PlainButtonStyle{})
         .overlay(If([=] { return hovered(); }, name.transition(Transition::opacity())), Alignment::top)
-        .on_hover([=](bool inside) { hovered = inside; }, HoverDelay{0, 0})
+        .on_pointer_enter([=] { hovered = true; })
+        .on_pointer_leave([=] { hovered = false; })
         .animation(Animation::spring(0.28, 0.7), [=] { return hovered(); })
         .accessibility_label(app_info(app).name);
 }
@@ -336,7 +337,8 @@ View LauncherDockIcon(const Desktop& d) {
                       });
                   })
         .button_style(PlainButtonStyle{})
-        .on_hover([=](bool inside) { hovered = inside; }, HoverDelay{0, 0})
+        .on_pointer_enter([=] { hovered = true; })
+        .on_pointer_leave([=] { hovered = false; })
         .animation(Animation::spring(0.28, 0.7), [=] { return hovered(); })
         .accessibility_label("Launcher");
 }

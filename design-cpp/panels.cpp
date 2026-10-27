@@ -577,7 +577,8 @@ View LayerRow(const Document &doc, const LayerEntry &entry,
           },
           RoundedRectangle(5))
       .content_shape(Rectangle())
-      .on_hover([=](bool inside) { hovered = inside; }, HoverDelay{0, 0})
+      .on_pointer_enter([=] { hovered = true; })
+      .on_pointer_leave([=] { hovered = false; })
       .on_tap_gesture([=] { renaming = true; }, 2)
       .on_tap_gesture([=] { doc.selection = std::vector<int>{id}; });
 }
