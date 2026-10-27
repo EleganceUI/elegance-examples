@@ -311,8 +311,8 @@ public:
         return {};
     }
 
-    EventResult scroll(const ScrollEvent& event) override {
-        const Point local{event.location.x - frame_.x, event.location.y - frame_.y};
+    EventResult scroll(const ScrollEvent& event, Rect frame) override {
+        const Point local{event.location.x - frame.x, event.location.y - frame.y};
         if (has(event.modifiers, KeyModifiers::control) || has(event.modifiers, KeyModifiers::super)) {
             doc_.zoom_at(local, std::exp(-event.dy * 0.0025f));
         } else {
