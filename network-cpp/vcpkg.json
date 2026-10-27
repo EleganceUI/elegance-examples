@@ -5,6 +5,16 @@
   "builtin-baseline": "2750401336fb7c95f6619657a46a7e798661341c",
   "dependencies": [
     "dawn",
+    {
+      "name": "boost-asio",
+      "default-features": false,
+      "features": [
+        "ssl"
+      ]
+    },
+    "boost-beast",
+    "boost-url",
+    "openssl",
     "freetype",
     "harfbuzz",
     "miniaudio",
@@ -16,6 +26,13 @@
       "name": "stb",
       "platform": "!windows & !osx"
     },
-    "sdl3"
+    "sdl3",
+    {
+      "name": "cpp-httplib",
+      "default-features": false,
+      "features": [
+        "openssl"
+      ]
+    }
   ]
 }

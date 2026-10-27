@@ -1,4 +1,4 @@
-# network: A request as reactive state, and a lazy list of images from the web.
+# network: HTTP with an established library (cpp-httplib), and a lazy list of images from the web.
 # A complete project: copy this folder to start an app (see the README one folder up).
 
 cmake_minimum_required(VERSION 4.3)
@@ -30,10 +30,14 @@ if (NOT TARGET Elegance::Elegance)
     endif ()
 endif ()
 
+# Elegance has no HTTP API of its own: apps use a library they trust. cpp-httplib comes from vcpkg
+# (vcpkg.json), with OpenSSL for https.
+find_package(httplib CONFIG REQUIRED)
+
 add_executable(network
         main.cpp
 )
-target_link_libraries(network PRIVATE Elegance::Elegance)
+target_link_libraries(network PRIVATE Elegance::Elegance httplib::httplib)
 elegance_application(network)
 
 # Strict warnings come with elegance_application(); MSVC also needs to read the sources as UTF-8.
