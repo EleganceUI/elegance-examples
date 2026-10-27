@@ -109,7 +109,7 @@ View NotesApp() {
                Spacer())
             .padding(EdgeInsets::symmetric(12, 8));
 
-    return VStack({.spacing = 0}, toolbar, Divider(),
+    return VStack({.spacing = 0}, toolbar, Separator(),
                   NavigationSplitView(sidebar_view, detail, {.sidebar_visible = sidebar.binding()}));
 }
 

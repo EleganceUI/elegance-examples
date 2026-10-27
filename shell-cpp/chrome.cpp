@@ -203,7 +203,7 @@ View WindowView(const Desktop& desktop, int id) {
            Draggable(Rectangle().fill(Color::clear).content_shape(Rectangle()), {.began = [=] { d.focus(id); }})
                .padding(EdgeInsets{.top = kTitleBarHeight}));
 
-    const View body = VStack({.spacing = 0}, title_bar, Divider(),
+    const View body = VStack({.spacing = 0}, title_bar, Separator(),
                              AppContent(d, w).frame({.max_width = infinity, .max_height = infinity}));
 
     return body.clip_shape(RoundedRectangle(kWindowRadius))
@@ -482,7 +482,7 @@ View Launcher(const Desktop& d) {
                                 return LauncherTile(d, all_apps()[static_cast<std::size_t>(index)]);
                             }))),
                   Spacer(),
-                  Divider(),
+                  Separator(),
                   HStack({.spacing = 10}, Avatar(d, 34),
                          Text([s = d.settings] { return s.user_name(); }).font(Font::system(14, Weight::medium)),
                          Spacer(),
@@ -544,7 +544,7 @@ View QuickSettings(const Desktop& d) {
                          QuickTile("Mute", "speaker-slash", s.muted)),
                   HStack({.spacing = 10}, Image("speaker-high").foreground_style(ThemeColor::secondary).frame({.width = 20}),
                          Slider(s.volume.binding())),
-                  Divider(),
+                  Separator(),
                   HStack({.spacing = 8}, Image("battery-high"), Text("82% - about 4 h left").font(Font::system(12)),
                          Spacer(),
                          Button(Image("gear-six").font(Font::system(16)).padding(6),

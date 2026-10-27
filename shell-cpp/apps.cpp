@@ -103,7 +103,7 @@ View Sidebar(View content) {
         .padding(10)
         .frame({.min_width = 210, .max_width = 210, .max_height = infinity, .alignment = Alignment::top_leading})
         .background(ThemeColor::surface)
-        .overlay(Rectangle().fill(ThemeColor::outline).frame({.min_width = 1, .max_width = 1, .max_height = infinity}), Alignment::trailing);
+        .overlay(Separator(Axis::vertical), Alignment::trailing);
 }
 
 // --- Settings ---
@@ -194,12 +194,12 @@ View SettingsContent(const Desktop& d, int page) {
         return VStack({.alignment = HorizontalAlignment::leading, .spacing = 12}, Heading("Network"),
                       Card(ToggleRow("Wi-Fi", "", s.wifi),
                            If([=] { return s.wifi(); },
-                              VStack({.alignment = HorizontalAlignment::leading, .spacing = 12}, Divider(),
+                              VStack({.alignment = HorizontalAlignment::leading, .spacing = 12}, Separator(),
                                      network("Home-5G", "Secured, 5 GHz", true), network("Cafe Guest", "Secured", false),
                                      network("Neighbor's Network", "Secured", false)))),
                       Card(ToggleRow("Bluetooth", "", s.bluetooth),
                            If([=] { return s.bluetooth(); },
-                              VStack({.alignment = HorizontalAlignment::leading, .spacing = 10}, Divider(),
+                              VStack({.alignment = HorizontalAlignment::leading, .spacing = 10}, Separator(),
                                      Row("Wireless Headphones", "Connected", Image("headphones").foreground_style(ThemeColor::accent)),
                                      Row("Keyboard", "Battery 64%", Image("keyboard").foreground_style(ThemeColor::accent))))));
     }
@@ -582,7 +582,7 @@ View NotesApp(const Desktop& d, const Window& w) {
     const View editor = ForEach([=] { return std::vector<int>{selected()}; }, [=](int) {
         return VStack({.alignment = HorizontalAlignment::leading, .spacing = 10},
                       TextField("Title", field(&Note::title)).text_field_style(PlainTextFieldStyle{}).font(Font::system(20, Weight::bold)),
-                      Divider(),
+                      Separator(),
                       ScrollView(TextArea("Start writing...", field(&Note::body))
                                      .text_field_style(PlainTextFieldStyle{})
                                      .font(Font::system(15))

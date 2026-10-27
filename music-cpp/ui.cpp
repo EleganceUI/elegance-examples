@@ -215,7 +215,7 @@ View TrackMenu(const Model& model, int track_id) {
     const int artist_id = album_of(t).artist;
     return Menu(MenuItem("Play Next", [=] { player.play_next(track_id); }, {.image = ImageSource{.system_name = "queue"}}),
                 MenuItem("Add to Queue", [=] { player.add_to_queue(track_id); }),
-                Divider(),
+                Separator(),
                 MenuItem(player.is_loved(track_id) ? "Unlove" : "Love", [=] { player.toggle_love(track_id); },
                          {.image = ImageSource{.system_name = "heart"}}),
                 Submenu("Add to Playlist",
@@ -225,7 +225,7 @@ View TrackMenu(const Model& model, int track_id) {
                                 return MenuItem(p.name, [=] { model.add_to_playlist(playlist_id, track_id); });
                             }));
                         }),
-                Divider(),
+                Separator(),
                 MenuItem("Go to Album", [=] { model.open({Route::Kind::album, album_id}); }),
                 MenuItem("Go to Artist", [=] { model.open({Route::Kind::artist, artist_id}); }));
 }

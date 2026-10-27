@@ -442,7 +442,7 @@ View Toolbar(const Document &doc, State<Size> viewport) {
                 MenuItem("Zoom to fit",
                          [=] { doc.zoom_to_fit(viewport.peek()); },
                          {.shortcut = "Shift+1"}),
-                Divider(),
+                Separator(),
                 MenuItem(
                     "Pixel grid",
                     [=] { doc.show_grid = !doc.show_grid.peek(); },

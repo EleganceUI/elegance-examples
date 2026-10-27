@@ -428,7 +428,7 @@ View Detail(const Model& model) {
 }
 
 View MusicApp(const Model& model) {
-    return NavigationSplitView(Sidebar(model), VStack({.spacing = 0}, PlayerBar(model), Divider(), Detail(model)),
+    return NavigationSplitView(Sidebar(model), VStack({.spacing = 0}, PlayerBar(model), Separator(), Detail(model)),
                                {.sidebar_visible = model.sidebar_shown.binding(), .sidebar_width = {180, 220, 320}})
         .overlay(WindowControls(), Alignment::top_trailing)
         .tint(kAccent)

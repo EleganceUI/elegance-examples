@@ -203,7 +203,7 @@ View Songs(const Model& model) {
                             .foreground_style(ThemeColor::secondary)
                             .padding(EdgeInsets{.leading = 56, .trailing = 10});
     return Page(Column({PageTitle("Songs"),
-                        VStack({.spacing = 6}, header, Divider(),
+                        VStack({.spacing = 6}, header, Separator(),
                                TrackList(model, [] { return all_tracks(); },
                                          {.numbers = false, .artist = true, .album_column = true}))},
                        16));

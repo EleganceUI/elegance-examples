@@ -26,7 +26,7 @@ View Notes() {
     const State<std::string> note;
     return VStack({.spacing = 0},
                   TitleBarView(),
-                  Divider(),
+                  Separator(),
                   TextArea("Write something…", note)
                       .text_field_style(PlainTextFieldStyle{})
                       .padding(16)
