@@ -1002,6 +1002,9 @@ View PropertiesPanel(const Document &doc) {
                           return key.empty() ? NoSelection(doc)
                                              : SelectionProperties(doc);
                         }))
+      // Inspector rows: the label at the leading edge, the switch at the
+      // trailing one.
+      .toggle_style(SwitchToggleStyle{{.fills_width = true}})
       .frame({.min_width = 260,
               .max_width = 260,
               .max_height = infinity,

@@ -86,7 +86,8 @@ View Row(std::string title, std::string detail, View control) {
 }
 
 View ToggleRow(std::string title, std::string detail, State<bool> value) {
-    return Row(std::move(title), std::move(detail), Toggle("", value.binding()).fixed_size());
+    View toggle = Toggle(value.binding()).accessibility_label(title);
+    return Row(std::move(title), std::move(detail), std::move(toggle));
 }
 
 View SidebarItem(std::string title, std::string icon, Prop<bool> selected, std::function<void()> action) {
