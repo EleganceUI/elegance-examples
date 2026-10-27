@@ -395,32 +395,32 @@ Section section_from(int key) {
     return {static_cast<Section::Kind>(key / 100000), key % 100000};
 }
 
+// The detail's stack: a back button over the pages, no title.
+class BackButtonStackStyle final : public NavigationStackStyle {
+public:
+    View make_body(const NavigationStackConfiguration& stack) const override {
+        const View back = HStack(Button(Image("caret-left"), stack.back)
+                                     .button_style(IconButtonStyle(15))
+                                     .disabled([can_go_back = stack.can_go_back] { return !can_go_back(); })
+                                     .accessibility_label("Back")
+                                     .help("Back (Alt+Left)"),
+                                 Spacer())
+                              .padding(EdgeInsets{.top = 6, .leading = 14})
+                              .frame({.height = 40});
+        return VStack({.spacing = 0}, back, stack.pages);
+    }
+};
+
 View Detail(const Model& model) {
     // The stack's root is the sidebar's section, or search results while there's a search.
     const View root = ForEach([=] { return std::vector<int>{model.search().empty() ? section_key(model.section()) : -1}; },
                               [=](int key) { return key == -1 ? SearchPage(model) : SectionPage(model, section_from(key)); });
     const View stack = NavigationStack(model.path, root, [=](const Route& route) { return RoutePage(model, route); },
                                        {.root_title = [=] { return section_title(model, model.section()); },
-                                        .title = [=](const Route& route) { return route_title(model, route); },
-                                        .shows_bar = false});
-    const State<std::vector<Route>> path = model.path;
-    const View back = HStack(Button(Image("caret-left"),
-                                    [=] {
-                                        path.update([](std::vector<Route>& p) {
-                                            if (!p.empty()) {
-                                                p.pop_back();
-                                            }
-                                        });
-                                    })
-                                 .button_style(IconButtonStyle(15))
-                                 .disabled([=] { return path().empty(); })
-                                 .accessibility_label("Back")
-                                 .help("Back (Alt+Left)"),
-                             Spacer())
-                          .padding(EdgeInsets{.top = 6, .leading = 14})
-                          .frame({.height = 40});
+                                        .title = [=](const Route& route) { return route_title(model, route); }})
+                           .navigation_stack_style(BackButtonStackStyle{});
     const State<Panel> panel = model.panel;
-    return HSplitView(VStack({.spacing = 0}, back, stack).frame({.max_width = infinity, .max_height = infinity}).layout_priority(1),
+    return HSplitView(stack.frame({.max_width = infinity, .max_height = infinity}).layout_priority(1),
                       If([=] { return panel() != Panel::none; },
                          SidePanel(model)
                              .frame({.min_width = 240, .ideal_width = 300, .max_width = 440, .max_height = infinity})

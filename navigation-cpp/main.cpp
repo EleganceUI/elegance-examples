@@ -99,7 +99,8 @@ View NotesApp() {
 
     const View detail = NavigationStack(path, notes, [](int id) { return NotePage(note_with(id)); },
                                         {.root_title = [=] { return folder(); },
-                                         .title = [](const int& id) { return note_with(id).title; }});
+                                         .title = [](const int& id) { return note_with(id).title; }})
+                            .navigation_stack_style(BarNavigationStackStyle{});
 
     const View toolbar =
         HStack(Button(Image("sidebar-simple"), [=] { with_animation(Animation::smooth(), [&] { sidebar = !sidebar(); }); })
