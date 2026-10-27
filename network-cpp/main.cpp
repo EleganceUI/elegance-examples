@@ -45,7 +45,14 @@ View Feed() {
     return VStack({.alignment = HorizontalAlignment::leading, .spacing = 16},
                   Quote(),
                   // Only the rows near the visible part are built, so only their images load.
-                  List(ForEach(ids, [](int id) { return Photo(id); })))
+                  ScrollView(LazyVStack({.spacing = 0, .separators = StackSeparators{.inset = 16}},
+                                        ForEach(ids,
+                                                [](int id) {
+                                                    return Photo(id)
+                                                        .padding(EdgeInsets::symmetric(16, 10))
+                                                        .frame({.max_width = infinity, .alignment = Alignment::leading});
+                                                }))
+                                 .background(ThemeColor::surface, RoundedRectangle(10))))
         .padding(20);
 }
 
