@@ -1,7 +1,6 @@
 #include "panels.h"
 
 #include <algorithm>
-#include <charconv>
 #include <cmath>
 #include <format>
 #include <functional>
@@ -82,63 +81,23 @@ std::string format_number(float value) {
   return std::format("{:.2f}", value);
 }
 
-std::optional<float> parse_number(const std::string &text) {
-  float value = 0;
-  const char *begin = text.data();
-  while (begin != text.data() + text.size() && *begin == ' ') {
-    ++begin;
-  }
-  const auto [end, error] =
-      std::from_chars(begin, text.data() + text.size(), value);
-  if (error != std::errc() || end == begin) {
-    return std::nullopt;
-  }
-  return value;
-}
-
-// A number that's applied on Enter or when the field loses focus (not while
-// typing, so "1." isn't rewritten to "1" under the caret).
+// A labelled number: typed (applied on Enter or when the field loses focus),
+// stepped with Up/Down, or scrubbed by dragging across it.
 View NumberField(std::string label, std::function<float()> get,
                  std::function<void(float)> set) {
-  const State<std::string> text;
-  const State<bool> focused(false);
-  const auto dirty = std::make_shared<bool>(false);
-  effect([=] {
-    const float value = get(); // tracked: shows changes made elsewhere
-    if (!focused.peek()) {
-      text = format_number(value);
-    }
-  });
-  const auto commit = [=] {
-    if (!*dirty) {
-      return;
-    }
-    *dirty = false;
-    if (const std::optional<float> value = parse_number(text.peek())) {
-      set(*value);
-    }
-    text = format_number(untrack(get));
-  };
-  effect([=] {
-    if (!focused()) {
-      untrack(commit);
-    }
-  });
-  const Binding<std::string> binding([=] { return text(); },
-                                     [=](std::string value) {
-                                       *dirty = true;
-                                       text = std::move(value);
-                                     });
   return HStack({.spacing = 6},
                 Text(std::move(label))
                     .font(Font::system(11))
                     .foreground_style(ThemeColor::tertiary)
                     .fixed_size()
                     .frame({.min_width = 14, .alignment = Alignment::leading}),
-                TextField("", binding, {.on_submit = commit})
-                    .text_field_style(PlainTextFieldStyle{})
-                    .font(Font::system(12))
-                    .focused(focused.binding()))
+                NumberInput(Binding<float>(std::move(get), std::move(set)),
+                            {.format = [](double v) {
+                               return format_number(static_cast<float>(v));
+                             },
+                             .shows_buttons = false})
+                    .number_input_style(PlainNumberInputStyle{})
+                    .font(Font::system(12)))
       .padding(EdgeInsets::symmetric(8, 5))
       .frame({.max_width = infinity})
       .background(ThemeColor::surface_raised, RoundedRectangle(5));
