@@ -565,22 +565,38 @@ View LayerRow(const Document &doc, const LayerEntry &entry,
       .padding(EdgeInsets{.leading = 4 + 14 * static_cast<float>(entry.depth),
                           .trailing = 6})
       .frame({.max_width = infinity, .min_height = 30, .max_height = 30})
+      // Hovered on the canvas; the row style shows selection and its own hover.
       .background(
           [=](const EnvironmentValues &env) {
-            if (doc.is_selected(id)) {
-              return ShapeStyle(env.color(ThemeColor::accent).opacity(0.22f));
-            }
-            return ShapeStyle(
-                hovered() || doc.hovered() == id
-                    ? env.color(ThemeColor::primary).opacity(0.06f)
-                    : Color::clear);
+            return doc.hovered() == id && !doc.is_selected(id)
+                       ? env.color(ThemeColor::primary).opacity(0.06f)
+                       : Color::clear;
           },
           RoundedRectangle(5))
       .content_shape(Rectangle())
       .on_pointer_enter([=] { hovered = true; })
       .on_pointer_leave([=] { hovered = false; })
-      .on_double_click([=] { renaming = true; })
-      .on_click([=] { doc.selection = std::vector<int>{id}; });
+      .on_double_click([=] { renaming = true; });
+}
+
+// The document's selection as a set for the layers list: changes keep the
+// order of the ids that stay, and add new ones after them.
+Binding<std::set<int>> selection_set(const Document &doc) {
+  return Binding<std::set<int>>(
+      [=] {
+        const std::vector<int> &ids = doc.selection();
+        return std::set<int>(ids.begin(), ids.end());
+      },
+      [=](std::set<int> ids) {
+        std::vector<int> next;
+        for (const int id : doc.selection.peek()) {
+          if (ids.erase(id)) {
+            next.push_back(id);
+          }
+        }
+        next.insert(next.end(), ids.begin(), ids.end());
+        doc.selection = std::move(next);
+      });
 }
 
 } // namespace
@@ -631,6 +647,20 @@ View LayersPanel(const Document &doc) {
                             [=](const LayerEntry &e) {
                               return LayerRow(doc, e, collapsed);
                             }))
+                     // Click, Shift+click and Cmd/Ctrl+click select, as do
+                     // the arrow keys while the list has focus.
+                     .selection(selection_set(doc))
+                     .row_style(HighlightRowStyle{{
+                         .selected = [](const EnvironmentValues &env) {
+                           return env.color(ThemeColor::accent).opacity(0.22f);
+                         },
+                         .on_selected = ThemeColor::primary,
+                         .hovered = [](const EnvironmentValues &env) {
+                           return env.color(ThemeColor::primary).opacity(0.12f);
+                         },
+                         .corner_radius = 5,
+                         .padding = {},
+                     }})
                      .padding(EdgeInsets{
                          .leading = 6, .bottom = 12, .trailing = 6})))
       .frame({.min_width = 240,
