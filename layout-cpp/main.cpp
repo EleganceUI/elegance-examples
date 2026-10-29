@@ -85,7 +85,7 @@ View ProfileCard() {
                              .foreground_style(ThemeColor::on_accent)
                              .padding(EdgeInsets::symmetric(8, 3))
                              .background(ThemeColor::accent, Capsule())),
-                  Divider(),
+                  Separator(),
                   FlowLayout(6)(std::move(tags)),
                   // Equal-width buttons: each label takes all it's offered, so they share the row.
                   HStack(Button(Text("Follow").frame({.max_width = infinity}), [] {}),

@@ -36,7 +36,9 @@ View PopoverApp() {
                                           return Text("Popovers close when you click elsewhere or press Esc.")
                                               .frame({.width = 200});
                                       },
-                                      {.opens = PopoverEdge::trailing})),
+                                      {.placement = {.edge = FloatingEdge::trailing,
+                                                     .alignment = FloatingAlignment::center,
+                                                     .spacing = 4}})),
                   Text([=] { return std::format("editing: {}", editing() ? "yes" : "no"); })
                       .font(Font::caption)
                       .foreground_style(ThemeColor::secondary))

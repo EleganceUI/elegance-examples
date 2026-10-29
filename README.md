@@ -19,7 +19,7 @@ reload and previews.
 | styling | [✓](styling-cpp) | | A custom theme, light and dark mode, a button style, a view modifier |
 | drawing | [✓](drawing-cpp) | | Gradients, strokes, an SVG path, a computed shape, a Canvas chart |
 | animation | [✓](animation-cpp) | | Transitions, an implicit spring, tiles that slide to new places |
-| effects | [✓](effects-cpp) | [✓](effects-rs) | Materials, blur, color adjustments, blend modes, shadows, masks |
+| effects | [✓](effects-cpp) | [✓](effects-rs) | Frosted glass (backdrop blur), blur, color adjustments, blend modes, shadows, masks |
 | fonts | [✓](fonts-cpp) | | The system font's weights, any weight between them (variable fonts), sizes, italics |
 | grids | [✓](grids-cpp) | [✓](grids-rs) | An adaptive VGrid of cards, and a Grid table |
 | popover | [✓](popover-cpp) | [✓](popover-rs) | Panels shown beside a view while a binding is true |
@@ -28,7 +28,7 @@ reload and previews.
 | icon-strip | | [✓](icon-strip-rs) | A strip of icons down the side that selects the page |
 | title-bar | [✓](title-bar-cpp) | | A window with its own title bar and a translucent, rounded panel |
 | media-player | [✓](media-player-cpp) | | A video player: open or drop a file |
-| network | [✓](network-cpp) | | A request as reactive state, and a lazy list of web images |
+| network | [✓](network-cpp) | | Web images with custom loading and failure views, in a lazy list, cached on disk |
 | recorder | [✓](recorder-cpp) | | Voice memos with a level meter, and a camera preview |
 | desktop | [✓](desktop-cpp) | | File dialogs, notifications, a tray icon, dropped files |
 | wgpu-image | | [✓](wgpu-image-rs) | A wgpu cube read back through CPU memory into a VideoFeed |

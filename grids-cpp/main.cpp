@@ -41,13 +41,13 @@ View GridsApp() {
         {.alignment = Alignment::leading, .horizontal_spacing = 24, .vertical_spacing = 8},
         GridRow(Text("Game").font(Font::headline), Text("Mods").font(Font::headline),
                 Text("Size").font(Font::headline).grid_column_alignment(HorizontalAlignment::trailing)),
-        Divider(),
+        Separator(),
         ForEach(games, &Game::id,
                 [](const Game& game) {
                     return GridRow(Text(game.name), Text(std::format("{}", game.mods)),
                                    Text(std::format("{:.1f} GB", game.size_gb)));
                 }),
-        Divider(),
+        Separator(),
         GridRow(Text("Sizes include downloaded mods.").foreground_style(ThemeColor::secondary).grid_cell_columns(3)));
 
     return ScrollView(VStack({.alignment = HorizontalAlignment::leading, .spacing = 24},

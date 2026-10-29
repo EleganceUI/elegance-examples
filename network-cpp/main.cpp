@@ -1,5 +1,5 @@
-// Network: a request as reactive state (http::Fetch), and images loaded from the web in a long,
-// lazily built list (AsyncImage).
+// Network: images loaded from the web (AsyncImage), with views of your own while one loads or if
+// it fails, in a long, lazily built list. Downloads are cached on disk between runs.
 
 #include <elg/elegance.h>
 
@@ -10,18 +10,27 @@ using namespace elg;
 
 namespace {
 
-// A quote from GitHub's API, with a button to fetch another.
-View Quote() {
-    const http::Fetch zen({.url = "https://api.github.com/zen", .headers = {{"User-Agent", "elegance-example"}}});
+// A wide photo with its own view for each phase, and a button that forgets every download.
+View Banner() {
     return HStack({.spacing = 12},
-                  Image("quotes").font(Font::title2).foreground_style(ThemeColor::accent),
-                  If([=] { return zen.is_loading() && !zen.has_response(); },
-                     ProgressView().frame({.width = 120}),
-                     Text([=] { return zen.ok() ? zen.response().text() : zen.error(); }).font(Font::title3)),
-                  Spacer(),
-                  Button(Image("arrow-clockwise"), [=] { zen.reload(); })
+                  AsyncImage("https://picsum.photos/id/1015/480/160",
+                             [](const AsyncImagePhase& phase) -> View {
+                                 switch (phase.kind) {
+                                 case AsyncImagePhase::Kind::success:
+                                     return phase.image.resizable().aspect_ratio(ContentMode::fill);
+                                 case AsyncImagePhase::Kind::failure:
+                                     return Text(phase.error).foreground_style(ThemeColor::danger);
+                                 case AsyncImagePhase::Kind::loading:
+                                     break;
+                                 }
+                                 return Progress().frame({.width = 120});
+                             })
+                      .frame({.height = 80})
+                      .frame({.max_width = infinity})
+                      .clip_shape(RoundedRectangle(8)),
+                  Button(Image("trash"), [] { clear_image_cache(); })
                       .button_style(BorderedButtonStyle{})
-                      .accessibility_label("Another quote"))
+                      .accessibility_label("Clear the image cache"))
         .padding(16)
         .background(ThemeColor::surface, RoundedRectangle(12));
 }
@@ -43,9 +52,12 @@ View Feed() {
         ids.push_back(id);
     }
     return VStack({.alignment = HorizontalAlignment::leading, .spacing = 16},
-                  Quote(),
+                  Banner(),
                   // Only the rows near the visible part are built, so only their images load.
-                  List(ForEach(ids, [](int id) { return Photo(id); })))
+                  ScrollView(LazyVStack({.alignment = HorizontalAlignment::leading,
+                                         .spacing = 12,
+                                         .separators = StackSeparators{.inset = 134}},
+                                        ForEach(ids, [](int id) { return Photo(id); }))))
         .padding(20);
 }
 

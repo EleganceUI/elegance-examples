@@ -26,8 +26,8 @@ View Notes() {
     const State<std::string> note;
     return VStack({.spacing = 0},
                   TitleBarView(),
-                  Divider(),
-                  TextField("Write something…", note, { .max_lines = std::numeric_limits<int>::max() })
+                  Separator(),
+                  TextArea("Write something…", note)
                       .text_field_style(PlainTextFieldStyle{})
                       .padding(16)
                       .frame({.max_width = infinity, .max_height = infinity, .alignment = Alignment::top_leading}))

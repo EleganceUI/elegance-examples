@@ -41,7 +41,7 @@ View Memos() {
                   Text("Voice memos").font(Font::title2),
                   HStack(Button(Label("Record", {.system_name = "microphone"}), toggle)
                              .tint([=] { return recorder.is_recording() ? Color::hex(0xFF453A) : Color::hex(0x0A84FF); }),
-                         ProgressView([=] { return recorder.level(); }),
+                         Progress([=] { return recorder.level(); }),
                          Text([=] { return std::format("{:.1f} s", recorder.duration()); })
                              .foreground_style(ThemeColor::secondary)),
                   If([=] { return !recorder.error().empty(); },
