@@ -4,7 +4,7 @@
 
 use std::process::ExitCode;
 
-use elegance::{dot::outline, prelude::*};
+use elegance::prelude::*;
 
 #[derive(Clone, PartialEq)]
 struct Todo {
