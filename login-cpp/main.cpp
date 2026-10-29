@@ -136,7 +136,7 @@ View CredentialsPanel(Form form, std::function<void()> log_in) {
 
     const View password = VStack({.alignment = HorizontalAlignment::leading, .spacing = 8},
                                  FieldLabel("PASSWORD", form.password_problem),
-                                 SecureField("", form.password.binding(), {.on_submit = log_in})
+                                 TextField("", form.password.binding(), {.on_submit = log_in, .secure = true})
                                      .focused(form.password_focused.binding()),
                                  Button("Forgot your password?", [] { std::puts("login: forgot password"); })
                                      .button_style(LinkStyle{}));

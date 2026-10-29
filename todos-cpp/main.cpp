@@ -44,7 +44,7 @@ View TodoRow(int id, std::string title, Todos todos) {
         });
     };
 
-    return HStack(Toggle(std::move(title), done).toggle_style(CheckboxToggleStyle{}),
+    return HStack(Checkbox(std::move(title), done),
                   Spacer(),
                   Button(Image("trash"), remove)
                       .button_style(PlainButtonStyle{})
@@ -75,8 +75,10 @@ View TodoApp() {
                          Button("Add", add).disabled([=] { return draft().empty(); })),
                   If([=] { return todos().empty(); },
                      Text("Nothing left to do.").foreground_style(ThemeColor::secondary),
-                     List(ForEach(todos, &Todo::id,
-                                  [=](const Todo& todo) { return TodoRow(todo.id, todo.title, todos); }))),
+                     ScrollView(LazyVStack({.spacing = 8, .separators = StackSeparators{}},
+                                           ForEach(todos, &Todo::id, [=](const Todo& todo) {
+                                               return TodoRow(todo.id, todo.title, todos);
+                                           })))),
                   Text([=] { return std::format("{} left", remaining()); })
                       .font(Font::caption)
                       .foreground_style(ThemeColor::secondary))

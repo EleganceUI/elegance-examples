@@ -194,7 +194,7 @@ View WindowView(const Desktop& desktop, int id) {
                                   w.height = std::clamp(start_size->height + delta.y, kMinWindowHeight, area.height - w.y.peek());
                               });
                           }})
-               .help("Resize"));
+               .tooltip("Resize"));
 
     // An inactive window's first click on its content brings it forward (title bars do that
     // themselves, and still drag).
@@ -203,7 +203,7 @@ View WindowView(const Desktop& desktop, int id) {
            Draggable(Rectangle().fill(Color::clear).content_shape(Rectangle()), {.began = [=] { d.focus(id); }})
                .padding(EdgeInsets{.top = kTitleBarHeight}));
 
-    const View body = VStack({.spacing = 0}, title_bar, Divider(),
+    const View body = VStack({.spacing = 0}, title_bar, Separator(),
                              AppContent(d, w).frame({.max_width = infinity, .max_height = infinity}));
 
     return body.clip_shape(RoundedRectangle(kWindowRadius))
@@ -250,8 +250,8 @@ View DesktopIcon(const Desktop& d, AppKind app, std::string label, State<int> se
             return is_selected() ? ShapeStyle(Color::white.opacity(0.22f)) : ShapeStyle(Color::clear);
         }, RoundedRectangle(8))
         .content_shape(Rectangle())
-        .on_tap_gesture([=] { d.open(app); }, 2)
-        .on_tap_gesture([=] { selected = index; })
+        .on_click([=] { selected = index; })
+        .on_double_click([=] { d.open(app); })
         .accessibility_element()
         .accessibility_action([=] { d.open(app); });
 }
@@ -266,7 +266,7 @@ View DesktopIcons(const Desktop& d) {
         .padding(20)
         .frame({.max_width = infinity, .max_height = infinity, .alignment = Alignment::top_leading})
         .content_shape(Rectangle())
-        .on_tap_gesture([=] {
+        .on_click([=] {
             selected = -1;
             d.launcher_open = false;
             d.quick_settings_open = false;
@@ -312,7 +312,8 @@ View DockIcon(const Desktop& d, AppKind app) {
                   [=] { d.activate_app(app); })
         .button_style(PlainButtonStyle{})
         .overlay(If([=] { return hovered(); }, name.transition(Transition::opacity())), Alignment::top)
-        .on_hover([=](bool inside) { hovered = inside; }, HoverDelay{0, 0})
+        .on_pointer_enter([=] { hovered = true; })
+        .on_pointer_leave([=] { hovered = false; })
         .animation(Animation::spring(0.28, 0.7), [=] { return hovered(); })
         .accessibility_label(app_info(app).name);
 }
@@ -336,7 +337,8 @@ View LauncherDockIcon(const Desktop& d) {
                       });
                   })
         .button_style(PlainButtonStyle{})
-        .on_hover([=](bool inside) { hovered = inside; }, HoverDelay{0, 0})
+        .on_pointer_enter([=] { hovered = true; })
+        .on_pointer_leave([=] { hovered = false; })
         .animation(Animation::spring(0.28, 0.7), [=] { return hovered(); })
         .accessibility_label("Launcher");
 }
@@ -375,7 +377,7 @@ View Tray(const Desktop& d) {
                       });
                   })
         .button_style(HoverButtonStyle(6, [=] { return d.quick_settings_open(); }))
-        .help("Quick settings");
+        .tooltip("Quick settings");
 }
 
 View TopBar(const Desktop& d) {
@@ -405,7 +407,7 @@ View TopBar(const Desktop& d) {
                              .padding(EdgeInsets::symmetric(8, 3)),
                          [=] { d.notify("Notifications", "You're all caught up.", "check-circle"); })
                       .button_style(HoverButtonStyle(6))
-                      .help("Notifications"))
+                      .tooltip("Notifications"))
         .padding(EdgeInsets::symmetric(6, 0))
         .frame({.max_width = infinity, .min_height = kTopBarHeight, .max_height = kTopBarHeight})
         .overlay(clock)
@@ -468,7 +470,7 @@ View Launcher(const Desktop& d) {
     const auto power_button = [](std::string icon, std::string label, std::function<void()> action) {
         return Button(Image(std::move(icon)).font(Font::system(18)).padding(8), std::move(action))
             .button_style(HoverButtonStyle(8))
-            .help(label)
+            .tooltip(label)
             .accessibility_label(label);
     };
     App* const app = d.app;
@@ -482,7 +484,7 @@ View Launcher(const Desktop& d) {
                                 return LauncherTile(d, all_apps()[static_cast<std::size_t>(index)]);
                             }))),
                   Spacer(),
-                  Divider(),
+                  Separator(),
                   HStack({.spacing = 10}, Avatar(d, 34),
                          Text([s = d.settings] { return s.user_name(); }).font(Font::system(14, Weight::medium)),
                          Spacer(),
@@ -544,7 +546,7 @@ View QuickSettings(const Desktop& d) {
                          QuickTile("Mute", "speaker-slash", s.muted)),
                   HStack({.spacing = 10}, Image("speaker-high").foreground_style(ThemeColor::secondary).frame({.width = 20}),
                          Slider(s.volume.binding())),
-                  Divider(),
+                  Separator(),
                   HStack({.spacing = 8}, Image("battery-high"), Text("82% - about 4 h left").font(Font::system(12)),
                          Spacer(),
                          Button(Image("gear-six").font(Font::system(16)).padding(6),
@@ -553,10 +555,10 @@ View QuickSettings(const Desktop& d) {
                                     d.open(AppKind::settings);
                                 })
                              .button_style(HoverButtonStyle(8))
-                             .help("All settings"),
+                             .tooltip("All settings"),
                          Button(Image("power").font(Font::system(16)).padding(6), [=] { d.lock(); })
                              .button_style(HoverButtonStyle(8))
-                             .help("Lock")))
+                             .tooltip("Lock")))
         .padding(16)
         .frame({.width = 380})
         .background([](const EnvironmentValues& env) { return glass(env, 0.95f); }, RoundedRectangle(14))
@@ -624,7 +626,7 @@ View LoginScreen(const Desktop& d) {
         VStack({.spacing = 14}, Avatar(d, 96).shadow({.color = Color::black.opacity(0.3f), .radius = 14, .y = 4}),
                Text([s = d.settings] { return s.user_name(); }).font(Font::system(24, Weight::semibold)),
                HStack({.spacing = 8},
-                      SecureField("Password", password.binding(), {.on_submit = submit})
+                      TextField("Password", password.binding(), {.on_submit = submit, .secure = true})
                           .focused(focused.binding())
                           .frame({.width = 240}),
                       Button(Image("arrow-right").font(Font::system(16, Weight::bold)).padding(8), submit)
@@ -650,7 +652,7 @@ View LoginScreen(const Desktop& d) {
                                 Button(Image("power").font(Font::system(20)).foreground_style(Color::white).padding(10),
                                        [app] { app->quit(); })
                                     .button_style(HoverButtonStyle(10))
-                                    .help("Exit the demo"))
+                                    .tooltip("Exit the demo"))
                              .padding(24)))
         .content_shape(Rectangle())
         .transition(Transition::opacity());
@@ -662,7 +664,7 @@ View DismissLayer(const Desktop& d) {
               Rectangle()
                   .fill(Color::clear)
                   .content_shape(Rectangle())
-                  .on_tap_gesture([=] {
+                  .on_click([=] {
                       with_animation(Animation::smooth(0.25), [&] {
                           d.launcher_open = false;
                           d.quick_settings_open = false;

@@ -41,7 +41,7 @@ fn PopoverApp() -> impl IntoView {
                     .accessibility_label("About")
                     .popover(showing_info,|| elg! {
                         Text("Popovers close when you click elsewhere or press Esc.").frame(width: 200)
-                    }, opens: .trailing)
+                    }, edge: .trailing)
             }
             Text(move || format!("editing: {}", if editing.get() { "yes" } else { "no" }))
                 .font(.caption)

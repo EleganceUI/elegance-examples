@@ -35,7 +35,7 @@ View TransportControls(const Model& model) {
                   Button(Image("shuffle"), [=] { player.set_shuffle(!player.shuffle()); })
                       .button_style(IconButtonStyle(15, [=] { return player.shuffle(); }))
                       .accessibility_label("Shuffle")
-                      .help("Shuffle"),
+                      .tooltip("Shuffle"),
                   Button(Image("skip-back.fill"), [=] { player.previous(); })
                       .button_style(IconButtonStyle(18))
                       .accessibility_label("Previous"),
@@ -51,7 +51,7 @@ View TransportControls(const Model& model) {
                          [=] { player.cycle_repeat(); })
                       .button_style(IconButtonStyle(15, [=] { return player.repeat() != Repeat::off; }))
                       .accessibility_label("Repeat")
-                      .help("Repeat"));
+                      .tooltip("Repeat"));
 }
 
 // The display in the middle of the bar: what's playing, and how far along.
@@ -63,7 +63,7 @@ View NowPlaying(const Model& model, int track_id) {
                                   [=](float fraction) { player.seek(static_cast<double>(fraction) * length); });
     const int album_id = t.album;
     return HStack({.spacing = 10},
-                  AlbumArtwork(t.album, 4).frame(42, 42).on_tap_gesture([=] {
+                  AlbumArtwork(t.album, 4).frame(42, 42).on_click([=] {
                       model.open({Route::Kind::album, album_id});
                   }),
                   VStack({.spacing = 0},
@@ -206,17 +206,17 @@ View PlayerBar(const Model& model) {
                                        [=] { with_animation(Animation::smooth(), [&] { sidebar = !sidebar(); }); })
                                     .button_style(IconButtonStyle(16))
                                     .accessibility_label("Sidebar")
-                                    .help("Show or hide the sidebar"),
+                                    .tooltip("Show or hide the sidebar"),
                                 TransportControls(model));
     const View trailing = HStack({.spacing = 6}, Volume(model),
                   Button(Image("quotes"), [=] { model.toggle_panel(Panel::lyrics); })
                       .button_style(IconButtonStyle(16, [=] { return panel() == Panel::lyrics; }))
                       .accessibility_label("Lyrics")
-                      .help("Lyrics"),
+                      .tooltip("Lyrics"),
                   Button(Image("list-bullets"), [=] { model.toggle_panel(Panel::queue); })
                       .button_style(IconButtonStyle(16, [=] { return panel() == Panel::queue; }))
                       .accessibility_label("Playing Next")
-                      .help("Playing Next"))
+                      .tooltip("Playing Next"))
                               // The caption buttons sit above this end of the bar, in the window's corner.
                               .padding(EdgeInsets{.trailing = kCaptionButtonsWidth});
     // With the sidebar hidden, the bar starts under the traffic lights: begin after them.
@@ -344,7 +344,7 @@ View LyricsFor(const Model& model, int track_id) {
                                          return env.color(ThemeColor::secondary).opacity(i < now ? 0.45f : 0.7f);
                                      })
                                      .animation(Animation::ease_out(0.3), line_now)
-                                     .on_tap_gesture([=] { player.seek(static_cast<double>(i) * per_line); });
+                                     .on_click([=] { player.seek(static_cast<double>(i) * per_line); });
                              }))
                           .padding(EdgeInsets{.top = 4, .leading = 20, .bottom = 40, .trailing = 20})
                           .frame({.max_width = infinity, .alignment = Alignment::leading}));
@@ -401,8 +401,7 @@ View Detail(const Model& model) {
                               [=](int key) { return key == -1 ? SearchPage(model) : SectionPage(model, section_from(key)); });
     const View stack = NavigationStack(model.path, root, [=](const Route& route) { return RoutePage(model, route); },
                                        {.root_title = [=] { return section_title(model, model.section()); },
-                                        .title = [=](const Route& route) { return route_title(model, route); },
-                                        .shows_bar = false});
+                                        .title = [=](const Route& route) { return route_title(model, route); }});
     const State<std::vector<Route>> path = model.path;
     const View back = HStack(Button(Image("caret-left"),
                                     [=] {
@@ -415,7 +414,7 @@ View Detail(const Model& model) {
                                  .button_style(IconButtonStyle(15))
                                  .disabled([=] { return path().empty(); })
                                  .accessibility_label("Back")
-                                 .help("Back (Alt+Left)"),
+                                 .tooltip("Back (Alt+Left)"),
                              Spacer())
                           .padding(EdgeInsets{.top = 6, .leading = 14})
                           .frame({.height = 40});
@@ -428,7 +427,7 @@ View Detail(const Model& model) {
 }
 
 View MusicApp(const Model& model) {
-    return NavigationSplitView(Sidebar(model), VStack({.spacing = 0}, PlayerBar(model), Divider(), Detail(model)),
+    return NavigationSplitView(Sidebar(model), VStack({.spacing = 0}, PlayerBar(model), Separator(), Detail(model)),
                                {.sidebar_visible = model.sidebar_shown.binding(), .sidebar_width = {180, 220, 320}})
         .overlay(WindowControls(), Alignment::top_trailing)
         .tint(kAccent)
@@ -470,7 +469,7 @@ int main(int argc, char** argv) {
         const Model model;
         PlaybackClock clock(model.player);
         app.window({.title = "Music", .width = 1280, .height = 800, .min_size = Size{1040, 620},
-                    .title_bar = kTitleBar, .traffic_lights_position = kTrafficLights},
+                    .title_bar = kTitleBar, .system_controls_position = kTrafficLights},
                    [&] {
                        clock.follow();
                        if (!screen.empty()) {

@@ -130,7 +130,7 @@ View AccentSwatch(const Settings& s, int index) {
             return s.accent() == index ? env.color(ThemeColor::primary) : Color::clear;
         }, 2))
         .content_shape(Circle())
-        .on_tap_gesture([=] { s.accent = index; })
+        .on_click([=] { s.accent = index; })
         .accessibility_label("Accent color " + std::to_string(index + 1));
 }
 
@@ -145,7 +145,7 @@ View WallpaperThumb(const Settings& s, int index) {
                       }, 3)),
                   Text(paper.name).font(Font::system(12)))
         .content_shape(Rectangle())
-        .on_tap_gesture([=] { s.wallpaper = index; });
+        .on_click([=] { s.wallpaper = index; });
 }
 
 View SettingsContent(const Desktop& d, int page) {
@@ -193,12 +193,12 @@ View SettingsContent(const Desktop& d, int page) {
         return VStack({.alignment = HorizontalAlignment::leading, .spacing = 12}, Heading("Network"),
                       Card(ToggleRow("Wi-Fi", "", s.wifi),
                            If([=] { return s.wifi(); },
-                              VStack({.alignment = HorizontalAlignment::leading, .spacing = 12}, Divider(),
+                              VStack({.alignment = HorizontalAlignment::leading, .spacing = 12}, Separator(),
                                      network("Home-5G", "Secured, 5 GHz", true), network("Cafe Guest", "Secured", false),
                                      network("Neighbor's Network", "Secured", false)))),
                       Card(ToggleRow("Bluetooth", "", s.bluetooth),
                            If([=] { return s.bluetooth(); },
-                              VStack({.alignment = HorizontalAlignment::leading, .spacing = 10}, Divider(),
+                              VStack({.alignment = HorizontalAlignment::leading, .spacing = 10}, Separator(),
                                      Row("Wireless Headphones", "Connected", Image("headphones").foreground_style(ThemeColor::accent)),
                                      Row("Keyboard", "Battery 64%", Image("keyboard").foreground_style(ThemeColor::accent))))));
     }
@@ -336,8 +336,8 @@ View FileTile(const Desktop& d, const FileItem& item, State<std::vector<std::str
             return selected() == name ? ShapeStyle(env.color(ThemeColor::accent).opacity(0.2f)) : ShapeStyle(Color::clear);
         }, RoundedRectangle(8))
         .content_shape(Rectangle())
-        .on_tap_gesture(open, 2)
-        .on_tap_gesture([=] { selected = name; })
+        .on_click([=] { selected = name; })
+        .on_double_click(open)
         .accessibility_element()
         .accessibility_action(open);
 }
@@ -359,7 +359,7 @@ View FilesApp(const Desktop& d) {
                       })
                    .button_style(HoverButtonStyle(6))
                    .disabled([=] { return path().size() <= 1; })
-                   .help("Back"),
+                   .tooltip("Back"),
                Text([=] {
                    std::string text;
                    for (const std::string& part : path()) {
@@ -563,7 +563,7 @@ View NotesApp(const Desktop& d, const Window& w) {
     const View list = Sidebar(VStack({.alignment = HorizontalAlignment::leading, .spacing = 2},
                                      HStack(Text("Notes").font(Font::system(13, Weight::semibold)).foreground_style(ThemeColor::secondary),
                                             Spacer(),
-                                            Button(Image("plus").padding(4), add).button_style(HoverButtonStyle(6)).help("New note"))
+                                            Button(Image("plus").padding(4), add).button_style(HoverButtonStyle(6)).tooltip("New note"))
                                          .padding(EdgeInsets{.leading = 8, .bottom = 6}),
                                      ForEach([=] { return notes(); }, &Note::id, [=](const Note& note) {
                                          const int id = note.id;
@@ -581,8 +581,8 @@ View NotesApp(const Desktop& d, const Window& w) {
     const View editor = ForEach([=] { return std::vector<int>{selected()}; }, [=](int) {
         return VStack({.alignment = HorizontalAlignment::leading, .spacing = 10},
                       TextField("Title", field(&Note::title)).text_field_style(PlainTextFieldStyle{}).font(Font::system(20, Weight::bold)),
-                      Divider(),
-                      ScrollView(TextField("Start writing...", field(&Note::body), {.max_lines = 400})
+                      Separator(),
+                      ScrollView(TextArea("Start writing...", field(&Note::body))
                                      .text_field_style(PlainTextFieldStyle{})
                                      .font(Font::system(15))
                                      .frame({.max_width = infinity, .alignment = Alignment::top_leading})))
@@ -749,7 +749,7 @@ View StatCard(std::string title, std::function<std::string()> value, std::functi
     return VStack({.alignment = HorizontalAlignment::leading, .spacing = 6},
                   Text(std::move(title)).font(Font::system(12)).foreground_style(ThemeColor::secondary),
                   Text([=] { return value(); }).font(Font::system(20, Weight::semibold)),
-                  ProgressView([=] { return fraction(); }))
+                  Progress([=] { return fraction(); }))
         .padding(14)
         .frame({.max_width = infinity, .alignment = Alignment::leading})
         .background(ThemeColor::surface, RoundedRectangle(10));

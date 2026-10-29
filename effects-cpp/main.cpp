@@ -1,4 +1,4 @@
-// Effects: materials (background blur), blur, color adjustments, blend modes, shadows (layered,
+// Effects: frosted glass (backdrop blur), blur, color adjustments, blend modes, shadows (layered,
 // spread, inner), gradients, rotation and scale, and masks.
 
 #include <elg/elegance.h>
@@ -29,17 +29,29 @@ View Section(std::string title, View content) {
                   Text(std::move(title)).font(Font::headline), std::move(content));
 }
 
+// Frosted glass: one of the theme's glass tints (light in light mode, dark in dark mode) over a
+// backdrop blur with one of its radii.
+struct Glass {
+    ThemeColor tint;
+    ThemeBlur blur;
+    std::string name;
+};
+
 View Materials() {
-    const std::vector<std::pair<Material, std::string>> materials{
-        {Material::ultra_thin, "ultra thin"}, {Material::thin, "thin"},       {Material::regular, "regular"},
-        {Material::thick, "thick"},           {Material::ultra_thick, "ultra thick"},
+    const std::vector<Glass> glasses{
+        {ThemeColor::glass_ultra_thin, ThemeBlur::xl, "ultra thin"},
+        {ThemeColor::glass_thin, ThemeBlur::xl, "thin"},
+        {ThemeColor::glass_regular, ThemeBlur::xl, "regular"},
+        {ThemeColor::glass_thick, ThemeBlur::xxl, "thick"},
+        {ThemeColor::glass_ultra_thick, ThemeBlur::xxl, "ultra thick"},
     };
     std::vector<View> items;
-    for (const auto& [material, name] : materials) {
-        items.push_back(Text(name).font(Font::caption).padding(10).frame({.max_width = infinity, .max_height = infinity})
-                            .background(material, RoundedRectangle(12)));
+    for (const auto& glass : glasses) {
+        items.push_back(Text(glass.name).font(Font::caption).padding(10).frame({.max_width = infinity, .max_height = infinity})
+                            .background(glass.tint, RoundedRectangle(12))
+                            .backdrop_blur(glass.blur, RoundedRectangle(12), {.saturation = 1.8f, .noise = 0.02f}));
     }
-    return Section("Materials (background blur)",
+    return Section("Materials (backdrop blur)",
                    ZStack(Backdrop(),
                           HStack({.spacing = 8}, items[0], items[1], items[2], items[3], items[4]).padding(14))
                        .frame({.height = 140})
@@ -142,7 +154,7 @@ View TransformsAndMasks() {
                            .overlay(Text("Tap").foreground_style(Color::white))
                            .frame(64, 64)
                            .rotation_effect([=] { return turned() ? 135.f : 15.f; })
-                           .on_tap_gesture([=] { with_animation(Animation::spring(), [&] { turned = !turned(); }); }),
+                           .on_click([=] { with_animation(Animation::spring(), [&] { turned = !turned(); }); }),
                        "rotation_effect"),
                Caption(Text("Wide").font(Font::system(28, Weight::bold)).scale_effect(1.6f, 0.8f), "scale_effect"),
                Caption(Backdrop()

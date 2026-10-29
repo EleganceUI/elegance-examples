@@ -13,19 +13,34 @@ struct Game {
 
 fn games() -> Vec<Game> {
     vec![
-        Game { id: 1, name: "Minecraft", mods: 42 },
-        Game { id: 2, name: "Skyrim", mods: 118 },
-        Game { id: 3, name: "Stardew Valley", mods: 9 },
+        Game {
+            id: 1,
+            name: "Minecraft",
+            mods: 42,
+        },
+        Game {
+            id: 2,
+            name: "Skyrim",
+            mods: 118,
+        },
+        Game {
+            id: 3,
+            name: "Stardew Valley",
+            mods: 9,
+        },
     ]
 }
 
 #[component]
 fn Sidebar(selected: State<i64>) -> impl IntoView {
     elg! {
-        List {
-            ForEach(games(), id: |g| g.id) { game in
-                SidebarRow(game: game.clone(), selected: selected)
+        ScrollView {
+            LazyVStack {
+                ForEach(games(), id: |g| g.id) { game in
+                    SidebarRow(game: game.clone(), selected: selected)
+                }
             }
+            .padding(8)
         }
     }
 }
@@ -37,7 +52,8 @@ fn SidebarRow(game: Game, selected: State<i64>) -> impl IntoView {
         Text(game.name)
             .frame(max_width: .infinity, alignment: .leading)
             .content_shape(Rectangle())
-            .on_tap_gesture(move || selected.set(id))
+            .padding(horizontal: 8, vertical: 6)
+            .on_click(move |_| selected.set(id))
             .foreground_style(move || if selected.get() == id { ThemeColor::Accent } else { ThemeColor::Primary })
     }
 }
@@ -72,5 +88,7 @@ fn Library() -> impl IntoView {
 }
 
 fn main() -> Result<ExitCode, Error> {
-    App::new().window(WindowDesc::new("Library").size(720, 420), Library).run()
+    App::new()
+        .window(WindowDesc::new("Library").size(720, 420), Library)
+        .run()
 }

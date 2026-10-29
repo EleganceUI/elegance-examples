@@ -75,7 +75,7 @@ impl ViewModifier for HoverLabel {
         };
         elg! {
             {content}
-                .on_hover(move |inside| hovered.set(inside))
+                .on_hover_change(move |inside| hovered.set(inside))
                 .overlay(Beside { gap: 3.0 }.view(vec![label.into_view()]), alignment: .trailing)
         }
         .into_view()
@@ -157,7 +157,7 @@ fn DownloadsPage() -> impl IntoView {
     elg! {
         VStack(alignment: .leading, spacing: 8) {
             Text("Downloads").font(.title)
-            ProgressView(0.4).frame(width: 240)
+            Progress(0.4).frame(width: 240)
         }
         .padding(24)
     }

@@ -56,7 +56,7 @@ fn Grids() -> impl IntoView {
                         Text("Mods").font(.headline)
                         Text("Size").font(.headline).grid_column_alignment(.trailing)
                     }
-                    Divider()
+                    Separator()
                     ForEach(games(), id: |g| g.id) { game in
                         GridRow {
                             Text(game.name)
@@ -64,7 +64,7 @@ fn Grids() -> impl IntoView {
                             Text(format!("{:.1} GB", game.size_gb))
                         }
                     }
-                    Divider()
+                    Separator()
                     GridRow {
                         Text("Sizes include downloaded mods.").foreground_style(.secondary).grid_cell_columns(3)
                     }

@@ -33,7 +33,7 @@ fn TodoRow(id: i64, title: String, todos: State<Vec<Todo>>) -> impl IntoView {
 
     elg! {
         HStack {
-            Toggle(title, done).toggle_style(CheckboxToggleStyle)
+            Checkbox(title, done)
             Spacer()
             Button(Image("trash"), remove)
                 .button_style(PlainButtonStyle)
@@ -94,9 +94,11 @@ fn TodoApp() -> impl IntoView {
             if todos.read().is_empty() {
                 Text("Nothing left to do.").foreground_style(.secondary)
             } else {
-                List {
-                    ForEach(todos, id: |t| t.id) { todo in
-                        TodoRow(id: todo.id, title: todo.title.clone(), todos: todos)
+                ScrollView {
+                    LazyVStack(spacing: 8, separators: StackSeparators::default()) {
+                        ForEach(todos, id: |t| t.id) { todo in
+                            TodoRow(id: todo.id, title: todo.title.clone(), todos: todos)
+                        }
                     }
                 }
             }

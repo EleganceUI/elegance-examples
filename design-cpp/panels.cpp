@@ -55,7 +55,7 @@ View IconButton(std::string icon, std::string help,
   return Button(Image(std::move(icon)).font(Font::system(16)).frame(30, 30),
                 std::move(action))
       .button_style(ToolButtonStyle(std::move(selected)))
-      .help(help)
+      .tooltip(help)
       .accessibility_label(help);
 }
 
@@ -374,7 +374,7 @@ View ColorRow(const Document &doc, std::function<Color()> get,
                     .popover(picking.binding(),
                              [=] { return ColorPicker(doc, get, set); },
                              {.padded = false})
-                    .help("Pick a color"),
+                    .tooltip("Pick a color"),
                 TextField("", hex.binding(), {.on_submit = commit})
                     .text_field_style(PlainTextFieldStyle{})
                     .font(Font::system(12))
@@ -439,7 +439,7 @@ View ToolPalette(const Document &doc) {
         Button(Image(info.icon).font(Font::system(18)).frame(36, 36),
                [=] { doc.tool = tool; })
             .button_style(ToolButtonStyle([=] { return doc.tool() == tool; }))
-            .help(info.help)
+            .tooltip(info.help)
             .accessibility_label(info.help);
     // A divider after the navigation tools, as in Figma.
     if (tool == Tool::hand) {
@@ -483,7 +483,7 @@ View Toolbar(const Document &doc, State<Size> viewport) {
                 MenuItem("Zoom to fit",
                          [=] { doc.zoom_to_fit(viewport.peek()); },
                          {.shortcut = "Shift+1"}),
-                Divider(),
+                Separator(),
                 MenuItem(
                     "Pixel grid",
                     [=] { doc.show_grid = !doc.show_grid.peek(); },
@@ -570,7 +570,7 @@ View LayerRow(const Document &doc, const LayerEntry &entry,
         .button_style(PlainButtonStyle{})
         .foreground_style(ThemeColor::secondary)
         .opacity([=] { return hovered() || !value ? 1.f : 0.f; })
-        .help(std::move(help));
+        .tooltip(std::move(help));
   };
   const View disclosure =
       entry.has_children
@@ -618,9 +618,10 @@ View LayerRow(const Document &doc, const LayerEntry &entry,
           },
           RoundedRectangle(5))
       .content_shape(Rectangle())
-      .on_hover([=](bool inside) { hovered = inside; }, HoverDelay{0, 0})
-      .on_tap_gesture([=] { renaming = true; }, 2)
-      .on_tap_gesture([=] { doc.selection = std::vector<int>{id}; });
+      .on_pointer_enter([=] { hovered = true; })
+      .on_pointer_leave([=] { hovered = false; })
+      .on_click([=] { doc.selection = std::vector<int>{id}; })
+      .on_double_click([=] { renaming = true; });
 }
 
 } // namespace
@@ -769,10 +770,10 @@ View Structure(const Document &doc) {
               {.spacing = 8},
               Button("Group", [=] { doc.group_selection(); })
                   .button_style(BorderedButtonStyle{})
-                  .help("Ctrl+G"),
+                  .tooltip("Ctrl+G"),
               If(any_group, Button("Ungroup", [=] { doc.ungroup_selection(); })
                                 .button_style(BorderedButtonStyle{})
-                                .help("Ctrl+Shift+G"))),
+                                .tooltip("Ctrl+Shift+G"))),
           If(single_frame,
              VStack({.alignment = HorizontalAlignment::leading, .spacing = 10},
                     Toggle("Clip content",
@@ -784,10 +785,10 @@ View Structure(const Document &doc) {
                     If([=] { return first().auto_layout; }, auto_layout,
                        Button("Add auto layout", [=] { doc.add_auto_layout(); })
                            .button_style(BorderedButtonStyle{})
-                           .help("Shift+A"))),
+                           .tooltip("Shift+A"))),
              Button("Wrap in auto layout", [=] { doc.add_auto_layout(); })
                  .button_style(BorderedButtonStyle{})
-                 .help("Shift+A"))));
+                 .tooltip("Shift+A"))));
 }
 
 View NoSelection(const Document &doc) {
