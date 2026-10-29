@@ -4,7 +4,7 @@
 
 use std::process::ExitCode;
 
-use elegance::prelude::*;
+use elegance::{dot::outline, prelude::*};
 
 #[derive(Clone, PartialEq)]
 struct Todo {
@@ -15,6 +15,7 @@ struct Todo {
 
 #[component]
 fn TodoRow(id: i64, title: String, todos: State<Vec<Todo>>) -> impl IntoView {
+    let hovered = State::new(false);
     // A Binding reads and writes one field of one item in the list.
     let done = Binding::new(
         move || todos.read().iter().any(|t| t.id == id && t.done),
@@ -40,6 +41,28 @@ fn TodoRow(id: i64, title: String, todos: State<Vec<Todo>>) -> impl IntoView {
                 .foreground_style(.danger)
                 .accessibility_label("Delete")
         }
+        .padding(horizontal: 16, vertical: 10)
+        .frame(max_width: .infinity, alignment: .leading)
+        .background(Prop::from_env(move |env| {
+            ShapeStyle::Color(if hovered.get() {
+                env.color(ThemeColor::Outline).opacity(0.35)
+            } else {
+                Color::CLEAR
+            })
+        }))
+        .content_shape(Rectangle())
+        .on_pointer_enter(move || hovered.set(true))
+        .on_pointer_leave(move || hovered.set(false))
+        .overlay_with(
+            elg! {
+                Rectangle().fill(.outline)
+                    .frame(height: 1)
+                    .padding(leading: 16)
+                    .opacity(move || if todos.read().last().is_some_and(|todo| todo.id == id) { 0.0 } else { 1.0 })
+                    .allows_hit_testing(false)
+            },
+            |o| o.alignment(.bottom),
+        )
     }
 }
 
@@ -93,14 +116,18 @@ fn TodoApp() -> impl IntoView {
             }
             if todos.read().is_empty() {
                 Text("Nothing left to do.").foreground_style(.secondary)
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 8, separators: StackSeparators::default()) {
-                        ForEach(todos, id: |t| t.id) { todo in
-                            TodoRow(id: todo.id, title: todo.title.clone(), todos: todos)
-                        }
+            }
+            // A regular stack lets ForEach retain exiting rows until their transitions finish.
+            // Keep it mounted even when empty so the final row can animate out.
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(todos, id: |t| t.id) { todo in
+                        TodoRow(id: todo.id, title: todo.title.clone(), todos: todos)
+                            .transition(Transition::opacity())
                     }
                 }
+                .background_in(.surface, RoundedRectangle(10))
+                .corner_radius(12)
             }
             Text("{remaining} left")
                 .font(.caption)

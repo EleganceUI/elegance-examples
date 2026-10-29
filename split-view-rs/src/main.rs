@@ -35,12 +35,11 @@ fn games() -> Vec<Game> {
 fn Sidebar(selected: State<i64>) -> impl IntoView {
     elg! {
         ScrollView {
-            LazyVStack {
+            LazyVStack(spacing: 0) {
                 ForEach(games(), id: |g| g.id) { game in
                     SidebarRow(game: game.clone(), selected: selected)
                 }
             }
-            .padding(8)
         }
     }
 }
@@ -48,11 +47,21 @@ fn Sidebar(selected: State<i64>) -> impl IntoView {
 #[component]
 fn SidebarRow(game: Game, selected: State<i64>) -> impl IntoView {
     let id = game.id;
+    let hover = State::new(false);
     elg! {
         Text(game.name)
             .frame(max_width: .infinity, alignment: .leading)
             .content_shape(Rectangle())
-            .padding(horizontal: 8, vertical: 6)
+            .padding(horizontal: 12, vertical: 10)
+            .background(Prop::from_env(move |env| {
+                let color = if hover.get() {
+                    env.color(ThemeColor::SurfaceRaised)
+                } else {
+                    Color::CLEAR
+                };
+                ShapeStyle::Color(color)
+            }))
+            .on_hover_change(move |e| hover.set(e))
             .on_click(move |_| selected.set(id))
             .foreground_style(move || if selected.get() == id { ThemeColor::Accent } else { ThemeColor::Primary })
     }
