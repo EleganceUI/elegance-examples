@@ -18,6 +18,7 @@ reload and previews.
 | styling | [✓](styling-cpp) | | A custom theme, light and dark mode, a button style, a view modifier |
 | drawing | [✓](drawing-cpp) | | Gradients, strokes, an SVG path, a computed shape, a Canvas chart |
 | animation | [✓](animation-cpp) | | Transitions, an implicit spring, tiles that slide to new places |
+| spinner | [✓](spinner-cpp) | | A loading spinner: on_appear and a repeating animation |
 | effects | [✓](effects-cpp) | [✓](effects-rs) | Materials, blur, color adjustments, blend modes, shadows, masks |
 | fonts | [✓](fonts-cpp) | | The system font's weights, any weight between them (variable fonts), sizes, italics |
 | grids | [✓](grids-cpp) | [✓](grids-rs) | An adaptive VGrid of cards, and a Grid table |
