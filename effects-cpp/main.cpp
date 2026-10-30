@@ -1,5 +1,5 @@
-// Effects: backdrop blur, blur, color adjustments, blend modes, shadows (layered,
-// spread, inner), gradients, rotation and scale, and masks.
+// Effects: frosted glass (the theme's glass tints), backdrop blur, blur, color adjustments, blend
+// modes, shadows (layered, spread, inner), gradients, rotation and scale, and masks.
 
 #include <elg/elegance.h>
 
@@ -30,7 +30,7 @@ View Section(std::string title, View content) {
 }
 
 // What's behind each panel, blurred and adjusted, under a tint of its own.
-struct Glass {
+struct BackdropPanel {
     float blur;
     BackdropOptions backdrop;
     Color tint;
@@ -39,7 +39,7 @@ struct Glass {
 };
 
 View BackdropBlur() {
-    const std::vector<Glass> panels{
+    const std::vector<BackdropPanel> panels{
         {8, {}, Color::clear, "blur 8"},
         {30, {.saturation = 1.8f}, Color::white.opacity(0.2f), "30, saturated", Color::black},
         {30, {.saturation = 1.8f, .noise = 0.02f}, Color::white.opacity(0.55f), "30, frosted", Color::black},
@@ -47,16 +47,45 @@ View BackdropBlur() {
         {40, {.saturation = 0.f}, Color::black.opacity(0.3f), "40, gray"},
     };
     std::vector<View> items;
-    for (const Glass& glass : panels) {
-        items.push_back(Text(glass.name)
+    for (const BackdropPanel& panel : panels) {
+        items.push_back(Text(panel.name)
                             .font(Font::caption)
-                            .foreground_style(glass.label)
+                            .foreground_style(panel.label)
                             .padding(10)
                             .frame({.max_width = infinity, .max_height = infinity})
-                            .background(glass.tint, RoundedRectangle(12))
-                            .backdrop_blur(glass.blur, RoundedRectangle(12), glass.backdrop));
+                            .background(panel.tint, RoundedRectangle(12))
+                            .backdrop_blur(panel.blur, RoundedRectangle(12), panel.backdrop));
     }
     return Section("Backdrop blur",
+                   ZStack(Backdrop(),
+                          HStack({.spacing = 8}, items[0], items[1], items[2], items[3], items[4]).padding(14))
+                       .frame({.height = 140})
+                       .corner_radius(16));
+}
+
+// Frosted glass: one of the theme's glass tints (light in light mode, dark in dark mode) over a
+// backdrop blur with one of its radii.
+struct Glass {
+    ThemeColor tint;
+    ThemeBlur blur;
+    std::string name;
+};
+
+View Materials() {
+    const std::vector<Glass> glasses{
+        {ThemeColor::glass_ultra_thin, ThemeBlur::xl, "ultra thin"},
+        {ThemeColor::glass_thin, ThemeBlur::xl, "thin"},
+        {ThemeColor::glass_regular, ThemeBlur::xl, "regular"},
+        {ThemeColor::glass_thick, ThemeBlur::xxl, "thick"},
+        {ThemeColor::glass_ultra_thick, ThemeBlur::xxl, "ultra thick"},
+    };
+    std::vector<View> items;
+    for (const auto& glass : glasses) {
+        items.push_back(Text(glass.name).font(Font::caption).padding(10).frame({.max_width = infinity, .max_height = infinity})
+                            .background(glass.tint, RoundedRectangle(12))
+                            .backdrop_blur(glass.blur, RoundedRectangle(12), {.saturation = 1.8f, .noise = 0.02f}));
+    }
+    return Section("Materials (backdrop blur)",
                    ZStack(Backdrop(),
                           HStack({.spacing = 8}, items[0], items[1], items[2], items[3], items[4]).padding(14))
                        .frame({.height = 140})
@@ -177,8 +206,8 @@ int main() {
     App app;
     app.window({.title = "Effects", .width = 1240, .height = 900}, [] {
         return ScrollView(HStack({.alignment = VerticalAlignment::top, .spacing = 32},
-                                 VStack({.alignment = HorizontalAlignment::leading, .spacing = 26}, BackdropBlur(), Blur(),
-                                        Gradients()),
+                                 VStack({.alignment = HorizontalAlignment::leading, .spacing = 26}, Materials(),
+                                        BackdropBlur(), Blur(), Gradients()),
                                  VStack({.alignment = HorizontalAlignment::leading, .spacing = 26}, ColorAdjustments(),
                                         BlendModes(), Shadows(), TransformsAndMasks()))
                               .padding(24));

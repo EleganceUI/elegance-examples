@@ -13,18 +13,32 @@ struct Game {
 
 fn games() -> Vec<Game> {
     vec![
-        Game { id: 1, name: "Minecraft", mods: 42 },
-        Game { id: 2, name: "Skyrim", mods: 118 },
-        Game { id: 3, name: "Stardew Valley", mods: 9 },
+        Game {
+            id: 1,
+            name: "Minecraft",
+            mods: 42,
+        },
+        Game {
+            id: 2,
+            name: "Skyrim",
+            mods: 118,
+        },
+        Game {
+            id: 3,
+            name: "Stardew Valley",
+            mods: 9,
+        },
     ]
 }
 
 #[component]
 fn Sidebar(selected: State<i64>) -> impl IntoView {
     elg! {
-        List {
-            ForEach(games(), id: |g| g.id) { game in
-                SidebarRow(game: game.clone(), selected: selected)
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(games(), id: |g| g.id) { game in
+                    SidebarRow(game: game.clone(), selected: selected)
+                }
             }
         }
     }
@@ -33,11 +47,22 @@ fn Sidebar(selected: State<i64>) -> impl IntoView {
 #[component]
 fn SidebarRow(game: Game, selected: State<i64>) -> impl IntoView {
     let id = game.id;
+    let hover = State::new(false);
     elg! {
         Text(game.name)
             .frame(max_width: .infinity, alignment: .leading)
             .content_shape(Rectangle())
-            .on_tap_gesture(move || selected.set(id))
+            .padding(horizontal: 12, vertical: 10)
+            .background(Prop::from_env(move |env| {
+                let color = if hover.get() {
+                    env.color(ThemeColor::SurfaceRaised)
+                } else {
+                    Color::CLEAR
+                };
+                ShapeStyle::Color(color)
+            }))
+            .on_hover_change(move |e| hover.set(e))
+            .on_click(move |_| selected.set(id))
             .foreground_style(move || if selected.get() == id { ThemeColor::Accent } else { ThemeColor::Primary })
     }
 }
@@ -50,7 +75,7 @@ fn Detail(selected: State<i64>, sidebar_visible: State<bool>) -> impl IntoView {
             Text(move || game().map(|g| g.name).unwrap_or("Pick a game")).font(.title)
             Text(move || game().map(|g| format!("{} mods installed", g.mods)).unwrap_or_default())
                 .foreground_style(.secondary)
-            Button("Toggle sidebar", move || sidebar_visible.update(|v| *v = !*v))
+            Button("Toggle sidebar", move || sidebar_visible.toggle())
         }
         .padding(24)
         .frame(max_width: .infinity, max_height: .infinity, alignment: .top_leading)
@@ -64,7 +89,7 @@ fn Library() -> impl IntoView {
 
     elg! {
         // Two views in the block: sidebar, detail. (Three: sidebar, content, detail.)
-        NavigationSplitView(sidebar_visible: $sidebar_visible, sidebar_width: ColumnWidth::new(160.0, 200.0, 300.0)) {
+        NavigationSplitView(sidebar_visible: sidebar_visible,sidebar_width: ColumnWidth::new(160.0, 200.0, 300.0)) {
             Sidebar(selected: selected)
             Detail(selected: selected, sidebar_visible: sidebar_visible)
         }
@@ -72,5 +97,7 @@ fn Library() -> impl IntoView {
 }
 
 fn main() -> Result<ExitCode, Error> {
-    App::new().window(WindowDesc::new("Library").size(720, 420), Library).run()
+    App::new()
+        .window(WindowDesc::new("Library").size(720, 420), Library)
+        .run()
 }

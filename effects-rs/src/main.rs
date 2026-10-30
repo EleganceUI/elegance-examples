@@ -1,4 +1,4 @@
-// Effects: materials (background blur), blur, color adjustments, blend modes, shadows (layered,
+// Effects: frosted glass (backdrop blur), blur, color adjustments, blend modes, shadows (layered,
 // spread, inner), gradients, rotation and scale, and masks. (The Rust version of effects-cpp.)
 
 use std::process::ExitCode;
@@ -38,25 +38,28 @@ fn section(title: &str, content: impl IntoView) -> impl IntoView {
 }
 
 fn materials() -> impl IntoView {
+    // Frosted glass: one of the theme's glass tints (light in light mode, dark in dark mode) over a
+    // backdrop blur with one of its radii.
     let items = [
-        (Material::ULTRA_THIN, "ultra thin"),
-        (Material::THIN, "thin"),
-        (Material::REGULAR, "regular"),
-        (Material::THICK, "thick"),
-        (Material::ULTRA_THICK, "ultra thick"),
+        (ThemeColor::GlassUltraThin, ThemeBlur::Xl, "ultra thin"),
+        (ThemeColor::GlassThin, ThemeBlur::Xl, "thin"),
+        (ThemeColor::GlassRegular, ThemeBlur::Xl, "regular"),
+        (ThemeColor::GlassThick, ThemeBlur::Xxl, "thick"),
+        (ThemeColor::GlassUltraThick, ThemeBlur::Xxl, "ultra thick"),
     ];
     section(
-        "Materials (background blur)",
+        "Materials (backdrop blur)",
         elg! {
             ZStack {
                 { backdrop() }
                 HStack(spacing: 8) {
-                    ForEach(items.to_vec(), id: |m| m.1) { m in
-                        Text(m.1)
+                    ForEach(items.to_vec(), id: |m| m.2) { m in
+                        Text(m.2)
                             .font(.caption)
                             .padding(10)
                             .frame(max_width: .infinity, max_height: .infinity)
                             .background_in(m.0, RoundedRectangle(12))
+                            .backdrop_blur_in(m.1, RoundedRectangle(12), |o| o.saturation(1.8).noise(0.02))
                     }
                 }
                 .padding(14)
@@ -76,7 +79,7 @@ fn blur() -> impl IntoView {
                 { backdrop() }.frame(height: 110).corner_radius(16).blur(radius)
                 HStack {
                     Text("Radius")
-                    Slider($radius, min: 0, max: 30)
+                    Slider(radius,min: 0, max: 30)
                 }
             }
         },
@@ -228,7 +231,7 @@ fn transforms_and_masks() -> impl IntoView {
                             .overlay(Text("Tap").foreground_style(.white))
                             .frame(64, 64)
                             .rotation_effect(move || if turned.get() { 135.0 } else { 15.0 })
-                            .on_tap_gesture(move || with_animation(Animation::spring(0.5, 0.825), move || turned.set(!turned.get()))),
+                            .on_click(move |_| with_animation(Animation::spring(0.5, 0.825), move || turned.set(!turned.get()))),
                         "rotation_effect",
                     )
                 }

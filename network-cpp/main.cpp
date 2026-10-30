@@ -1,6 +1,7 @@
 // Network: HTTP with an established library (cpp-httplib) on a background thread, its result
-// handed to the UI with post_to_ui_thread, and images loaded from the web in a long, lazily built
-// list (AsyncImage).
+// handed to the UI with post_to_ui_thread, and images loaded from the web (AsyncImage), with views
+// of your own while one loads or if it fails, in a long, lazily built list. Downloads are cached
+// on disk between runs.
 
 #include <elg/elegance.h>
 
@@ -63,6 +64,31 @@ View Quote() {
         .background(ThemeColor::surface, RoundedRectangle(12));
 }
 
+// A wide photo with its own view for each phase, and a button that forgets every download.
+View Banner() {
+    return HStack({.spacing = 12},
+                  AsyncImage("https://picsum.photos/id/1015/480/160",
+                             [](const AsyncImagePhase& phase) -> View {
+                                 switch (phase.kind) {
+                                 case AsyncImagePhase::Kind::success:
+                                     return phase.image.resizable().aspect_ratio(ContentMode::fill);
+                                 case AsyncImagePhase::Kind::failure:
+                                     return Text(phase.error).foreground_style(ThemeColor::danger);
+                                 case AsyncImagePhase::Kind::loading:
+                                     break;
+                                 }
+                                 return Progress().frame({.width = 120});
+                             })
+                      .frame({.height = 80})
+                      .frame({.max_width = infinity})
+                      .clip_shape(RoundedRectangle(8)),
+                  Button(Image("trash"), [] { clear_image_cache(); })
+                      .button_style(BorderedButtonStyle{})
+                      .accessibility_label("Clear the image cache"))
+        .padding(16)
+        .background(ThemeColor::surface, RoundedRectangle(12));
+}
+
 View Photo(int id) {
     return HStack({.spacing = 14},
                   AsyncImage(std::format("https://picsum.photos/id/{}/240/160", id),
@@ -81,6 +107,7 @@ View Feed() {
     }
     return VStack({.alignment = HorizontalAlignment::leading, .spacing = 16},
                   Quote(),
+                  Banner(),
                   // Only the rows near the visible part are built, so only their images load.
                   ScrollView(LazyVStack({.spacing = 0, .separators = StackSeparators{.inset = 16}},
                                         ForEach(ids,
