@@ -1,0 +1,31 @@
+{
+  "name": "split-view",
+  "version": "0.1.0",
+  "license": "MIT",
+  "builtin-baseline": "2750401336fb7c95f6619657a46a7e798661341c",
+  "dependencies": [
+    "dawn",
+    {
+      "name": "boost-asio",
+      "default-features": false,
+      "features": [
+        "ssl"
+      ]
+    },
+    "boost-beast",
+    "boost-url",
+    "openssl",
+    "freetype",
+    "harfbuzz",
+    "miniaudio",
+    {
+      "name": "msdfgen",
+      "default-features": false
+    },
+    {
+      "name": "stb",
+      "platform": "!windows & !osx"
+    },
+    "sdl3"
+  ]
+}

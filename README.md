@@ -43,7 +43,7 @@ Then try **preview** for hot reload.
 | layout | [✓](layout-cpp) | | Stacks, spacers, frames, overlays, and a custom flow layout |
 | grids | [✓](grids-cpp) | [✓](grids-rs) | An adaptive `VGrid` of cards, and a `Grid` table |
 | navigation | [✓](navigation-cpp) | | `NavigationSplitView`, `NavigationStack`, `VSplitView` |
-| split-view | | [✓](split-view-rs) | A sidebar list that selects the detail view |
+| split-view | [✓](split-view-cpp) | [✓](split-view-rs) | A sidebar list that selects the detail view |
 | icon-strip | | [✓](icon-strip-rs) | A vertical strip of icons that selects the page |
 | popover | [✓](popover-cpp) | [✓](popover-rs) | Panels shown beside a view while a binding is true |
 | title-bar | [✓](title-bar-cpp) | | A custom title bar and a translucent, rounded window |
