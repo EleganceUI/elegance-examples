@@ -27,6 +27,13 @@
       "platform": "!windows & !osx"
     },
     "sdl3",
-    "nayuki-qr-code-generator"
+    "nayuki-qr-code-generator",
+    {
+      "name": "cpp-httplib",
+      "default-features": false,
+      "features": [
+        "openssl"
+      ]
+    }
   ]
 }

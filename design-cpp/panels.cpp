@@ -1,7 +1,6 @@
 #include "panels.h"
 
 #include <algorithm>
-#include <charconv>
 #include <cmath>
 #include <format>
 #include <functional>
@@ -21,18 +20,18 @@ namespace {
 
 class ToolButtonStyle final : public ButtonStyle {
 public:
-  explicit ToolButtonStyle(std::function<bool()> selected = {})
+  explicit ToolButtonStyle(Prop<bool> selected = false)
       : selected_(std::move(selected)) {}
   View make_body(const ButtonConfiguration &button) const override {
-    const std::function<bool()> selected = selected_;
+    const Prop<bool> selected = selected_;
     return button.label
         .foreground_style([=](const EnvironmentValues &env) {
-          return selected && selected() ? Color::white
+          return selected.get(env) ? Color::white
                                         : env.color(ThemeColor::primary);
         })
         .background(
             [=](const EnvironmentValues &env) {
-              if (selected && selected()) {
+              if (selected.get(env)) {
                 return ShapeStyle(env.color(ThemeColor::accent));
               }
               const Color base = env.color(ThemeColor::primary);
@@ -46,12 +45,12 @@ public:
   }
 
 private:
-  std::function<bool()> selected_;
+  Prop<bool> selected_;
 };
 
 View IconButton(std::string icon, std::string help,
                 std::function<void()> action,
-                std::function<bool()> selected = {}) {
+                Prop<bool> selected = false) {
   return Button(Image(std::move(icon)).font(Font::system(16)).frame(30, 30),
                 std::move(action))
       .button_style(ToolButtonStyle(std::move(selected)))
@@ -82,63 +81,23 @@ std::string format_number(float value) {
   return std::format("{:.2f}", value);
 }
 
-std::optional<float> parse_number(const std::string &text) {
-  float value = 0;
-  const char *begin = text.data();
-  while (begin != text.data() + text.size() && *begin == ' ') {
-    ++begin;
-  }
-  const auto [end, error] =
-      std::from_chars(begin, text.data() + text.size(), value);
-  if (error != std::errc() || end == begin) {
-    return std::nullopt;
-  }
-  return value;
-}
-
-// A number that's applied on Enter or when the field loses focus (not while
-// typing, so "1." isn't rewritten to "1" under the caret).
+// A labelled number: typed (applied on Enter or when the field loses focus),
+// stepped with Up/Down, or scrubbed by dragging across it.
 View NumberField(std::string label, std::function<float()> get,
                  std::function<void(float)> set) {
-  const State<std::string> text;
-  const State<bool> focused(false);
-  const auto dirty = std::make_shared<bool>(false);
-  effect([=] {
-    const float value = get(); // tracked: shows changes made elsewhere
-    if (!focused.peek()) {
-      text = format_number(value);
-    }
-  });
-  const auto commit = [=] {
-    if (!*dirty) {
-      return;
-    }
-    *dirty = false;
-    if (const std::optional<float> value = parse_number(text.peek())) {
-      set(*value);
-    }
-    text = format_number(untrack(get));
-  };
-  effect([=] {
-    if (!focused()) {
-      untrack(commit);
-    }
-  });
-  const Binding<std::string> binding([=] { return text(); },
-                                     [=](std::string value) {
-                                       *dirty = true;
-                                       text = std::move(value);
-                                     });
   return HStack({.spacing = 6},
                 Text(std::move(label))
                     .font(Font::system(11))
                     .foreground_style(ThemeColor::tertiary)
                     .fixed_size()
                     .frame({.min_width = 14, .alignment = Alignment::leading}),
-                TextField("", binding, {.on_submit = commit})
-                    .text_field_style(PlainTextFieldStyle{})
-                    .font(Font::system(12))
-                    .focused(focused.binding()))
+                NumberInput(Binding<float>(std::move(get), std::move(set)),
+                            {.format = [](double v) {
+                               return format_number(static_cast<float>(v));
+                             },
+                             .shows_buttons = false})
+                    .number_input_style(PlainNumberInputStyle{})
+                    .font(Font::system(12)))
       .padding(EdgeInsets::symmetric(8, 5))
       .frame({.max_width = infinity})
       .background(ThemeColor::surface_raised, RoundedRectangle(5));
@@ -606,22 +565,38 @@ View LayerRow(const Document &doc, const LayerEntry &entry,
       .padding(EdgeInsets{.leading = 4 + 14 * static_cast<float>(entry.depth),
                           .trailing = 6})
       .frame({.max_width = infinity, .min_height = 30, .max_height = 30})
+      // Hovered on the canvas; the row style shows selection and its own hover.
       .background(
           [=](const EnvironmentValues &env) {
-            if (doc.is_selected(id)) {
-              return ShapeStyle(env.color(ThemeColor::accent).opacity(0.22f));
-            }
-            return ShapeStyle(
-                hovered() || doc.hovered() == id
-                    ? env.color(ThemeColor::primary).opacity(0.06f)
-                    : Color::clear);
+            return doc.hovered() == id && !doc.is_selected(id)
+                       ? env.color(ThemeColor::primary).opacity(0.06f)
+                       : Color::clear;
           },
           RoundedRectangle(5))
       .content_shape(Rectangle())
       .on_pointer_enter([=] { hovered = true; })
       .on_pointer_leave([=] { hovered = false; })
-      .on_click([=] { doc.selection = std::vector<int>{id}; })
       .on_double_click([=] { renaming = true; });
+}
+
+// The document's selection as a set for the layers list: changes keep the
+// order of the ids that stay, and add new ones after them.
+Binding<std::set<int>> selection_set(const Document &doc) {
+  return Binding<std::set<int>>(
+      [=] {
+        const std::vector<int> &ids = doc.selection();
+        return std::set<int>(ids.begin(), ids.end());
+      },
+      [=](std::set<int> ids) {
+        std::vector<int> next;
+        for (const int id : doc.selection.peek()) {
+          if (ids.erase(id)) {
+            next.push_back(id);
+          }
+        }
+        next.insert(next.end(), ids.begin(), ids.end());
+        doc.selection = std::move(next);
+      });
 }
 
 } // namespace
@@ -672,6 +647,20 @@ View LayersPanel(const Document &doc) {
                             [=](const LayerEntry &e) {
                               return LayerRow(doc, e, collapsed);
                             }))
+                     // Click, Shift+click and Cmd/Ctrl+click select, as do
+                     // the arrow keys while the list has focus.
+                     .selection(selection_set(doc))
+                     .row_style(HighlightRowStyle{{
+                         .selected = [](const EnvironmentValues &env) {
+                           return env.color(ThemeColor::accent).opacity(0.22f);
+                         },
+                         .on_selected = ThemeColor::primary,
+                         .hovered = [](const EnvironmentValues &env) {
+                           return env.color(ThemeColor::primary).opacity(0.12f);
+                         },
+                         .corner_radius = 5,
+                         .padding = {},
+                     }})
                      .padding(EdgeInsets{
                          .leading = 6, .bottom = 12, .trailing = 6})))
       .frame({.min_width = 240,
@@ -1003,6 +992,9 @@ View PropertiesPanel(const Document &doc) {
                           return key.empty() ? NoSelection(doc)
                                              : SelectionProperties(doc);
                         }))
+      // Inspector rows: the label at the leading edge, the switch at the
+      // trailing one.
+      .toggle_style(SwitchToggleStyle{{.fills_width = true}})
       .frame({.min_width = 260,
               .max_width = 260,
               .max_height = infinity,

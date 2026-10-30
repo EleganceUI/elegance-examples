@@ -86,10 +86,11 @@ View Row(std::string title, std::string detail, View control) {
 }
 
 View ToggleRow(std::string title, std::string detail, State<bool> value) {
-    return Row(std::move(title), std::move(detail), Toggle("", value.binding()).fixed_size());
+    View toggle = Toggle(value.binding()).accessibility_label(title);
+    return Row(std::move(title), std::move(detail), std::move(toggle));
 }
 
-View SidebarItem(std::string title, std::string icon, std::function<bool()> selected, std::function<void()> action) {
+View SidebarItem(std::string title, std::string icon, Prop<bool> selected, std::function<void()> action) {
     return Button(HStack({.spacing = 10}, Image(std::move(icon)).foreground_style(ThemeColor::accent).frame({.width = 20}),
                          Text(std::move(title)).font(Font::system(14)), Spacer())
                       .padding(EdgeInsets::symmetric(10, 7)),
@@ -102,7 +103,7 @@ View Sidebar(View content) {
         .padding(10)
         .frame({.min_width = 210, .max_width = 210, .max_height = infinity, .alignment = Alignment::top_leading})
         .background(ThemeColor::surface)
-        .overlay(Rectangle().fill(ThemeColor::outline).frame({.min_width = 1, .max_width = 1, .max_height = infinity}), Alignment::trailing);
+        .overlay(Separator(Axis::vertical), Alignment::trailing);
 }
 
 // --- Settings ---
@@ -336,8 +337,8 @@ View FileTile(const Desktop& d, const FileItem& item, State<std::vector<std::str
             return selected() == name ? ShapeStyle(env.color(ThemeColor::accent).opacity(0.2f)) : ShapeStyle(Color::clear);
         }, RoundedRectangle(8))
         .content_shape(Rectangle())
-        .on_click([=] { selected = name; })
         .on_double_click(open)
+        .on_click([=] { selected = name; })
         .accessibility_element()
         .accessibility_action(open);
 }

@@ -42,7 +42,7 @@ View RowButtonStyle::make_body(const ButtonConfiguration& button) const {
         .frame({.max_width = infinity, .alignment = Alignment::leading})
         .background(
             [=](const EnvironmentValues& env) {
-                if (selected && selected()) {
+                if (selected.get(env)) {
                     return env.color(ThemeColor::outline);
                 }
                 return button.is_hovered() ? env.color(ThemeColor::outline).opacity(0.5f) : Color::clear;
@@ -73,7 +73,7 @@ View IconButtonStyle::make_body(const ButtonConfiguration& button) const {
             if (!button.is_enabled()) {
                 return env.color(ThemeColor::tertiary);
             }
-            return active && active() ? kAccent : env.color(ThemeColor::primary);
+            return active.get(env) ? kAccent : env.color(ThemeColor::primary);
         })
         .frame(box, box)
         .background(
@@ -166,10 +166,10 @@ View AlbumCard(const Model& model, int album_id) {
                   Text(a.title).font(Font::subheadline).line_limit(1),
                   Text(artist(a.artist).name).font(Font::subheadline).foreground_style(ThemeColor::secondary).line_limit(1))
         .content_shape(Rectangle())
-        .on_hover_change([=](bool inside) { hovered = inside; })
-        .on_click([=] { model.open({Route::Kind::album, album_id}); })
-        .accessibility_element()
-        .accessibility_action([=] { model.open({Route::Kind::album, album_id}); });
+        .on_pointer_enter([=] { hovered = true; })
+        .on_pointer_leave([=] { hovered = false; })
+        .on_activate([=] { model.open({Route::Kind::album, album_id}); })
+        .accessibility_element();
 }
 
 View Shelf(const Model& model, std::string title, std::vector<int> album_ids) {

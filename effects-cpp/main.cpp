@@ -1,5 +1,5 @@
-// Effects: frosted glass (backdrop blur), blur, color adjustments, blend modes, shadows (layered,
-// spread, inner), gradients, rotation and scale, and masks.
+// Effects: frosted glass (the theme's glass tints), backdrop blur, blur, color adjustments, blend
+// modes, shadows (layered, spread, inner), gradients, rotation and scale, and masks.
 
 #include <elg/elegance.h>
 
@@ -27,6 +27,40 @@ View Caption(View content, std::string label) {
 View Section(std::string title, View content) {
     return VStack({.alignment = HorizontalAlignment::leading, .spacing = 10},
                   Text(std::move(title)).font(Font::headline), std::move(content));
+}
+
+// What's behind each panel, blurred and adjusted, under a tint of its own.
+struct BackdropPanel {
+    float blur;
+    BackdropOptions backdrop;
+    Color tint;
+    std::string name;
+    Color label = Color::white; // readable on the tint, in either color scheme
+};
+
+View BackdropBlur() {
+    const std::vector<BackdropPanel> panels{
+        {8, {}, Color::clear, "blur 8"},
+        {30, {.saturation = 1.8f}, Color::white.opacity(0.2f), "30, saturated", Color::black},
+        {30, {.saturation = 1.8f, .noise = 0.02f}, Color::white.opacity(0.55f), "30, frosted", Color::black},
+        {24, {.brightness = -0.25f}, Color::clear, "24, darker"},
+        {40, {.saturation = 0.f}, Color::black.opacity(0.3f), "40, gray"},
+    };
+    std::vector<View> items;
+    for (const BackdropPanel& panel : panels) {
+        items.push_back(Text(panel.name)
+                            .font(Font::caption)
+                            .foreground_style(panel.label)
+                            .padding(10)
+                            .frame({.max_width = infinity, .max_height = infinity})
+                            .background(panel.tint, RoundedRectangle(12))
+                            .backdrop_blur(panel.blur, RoundedRectangle(12), panel.backdrop));
+    }
+    return Section("Backdrop blur",
+                   ZStack(Backdrop(),
+                          HStack({.spacing = 8}, items[0], items[1], items[2], items[3], items[4]).padding(14))
+                       .frame({.height = 140})
+                       .corner_radius(16));
 }
 
 // Frosted glass: one of the theme's glass tints (light in light mode, dark in dark mode) over a
@@ -172,8 +206,8 @@ int main() {
     App app;
     app.window({.title = "Effects", .width = 1240, .height = 900}, [] {
         return ScrollView(HStack({.alignment = VerticalAlignment::top, .spacing = 32},
-                                 VStack({.alignment = HorizontalAlignment::leading, .spacing = 26}, Materials(), Blur(),
-                                        Gradients()),
+                                 VStack({.alignment = HorizontalAlignment::leading, .spacing = 26}, Materials(),
+                                        BackdropBlur(), Blur(), Gradients()),
                                  VStack({.alignment = HorizontalAlignment::leading, .spacing = 26}, ColorAdjustments(),
                                         BlendModes(), Shadows(), TransformsAndMasks()))
                               .padding(24));

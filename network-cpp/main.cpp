@@ -1,14 +1,68 @@
-// Network: images loaded from the web (AsyncImage), with views of your own while one loads or if
-// it fails, in a long, lazily built list. Downloads are cached on disk between runs.
+// Network: HTTP with an established library (cpp-httplib) on a background thread, its result
+// handed to the UI with post_to_ui_thread, and images loaded from the web (AsyncImage), with views
+// of your own while one loads or if it fails, in a long, lazily built list. Downloads are cached
+// on disk between runs.
 
 #include <elg/elegance.h>
 
+#include <httplib.h>
+
+#include <expected>
 #include <format>
+#include <thread>
 #include <vector>
 
 using namespace elg;
 
 namespace {
+
+using Body = std::expected<std::string, std::string>; // the body, or why there isn't one
+
+// GETs `path` from `server` on a thread of its own; `done` runs on the UI thread, where it may
+// write state.
+void get(std::string server, std::string path, std::function<void(const Body&)> done) {
+    std::thread([server = std::move(server), path = std::move(path), done = std::move(done)] {
+        httplib::Client client(server);
+        client.set_follow_location(true);
+        client.set_connection_timeout(10);
+        const auto response = client.Get(path, httplib::Headers{{"User-Agent", "elegance-example"}});
+        Body body;
+        if (!response) {
+            body = std::unexpected(httplib::to_string(response.error())); // network, TLS, timeout
+        } else if (response->status != 200) {
+            body = std::unexpected(std::format("HTTP {}", response->status));
+        } else {
+            body = response->body;
+        }
+        post_to_ui_thread([done, body = std::move(body)] { done(body); });
+    }).detach();
+}
+
+// A quote from GitHub's API, with a button to fetch another.
+View Quote() {
+    const State<bool> loading(true);
+    const State<std::string> quote(std::string{});
+    const auto load = [=] {
+        loading = true;
+        get("https://api.github.com", "/zen", [=](const Body& body) {
+            quote = body ? *body : body.error();
+            loading = false;
+        });
+    };
+    load();
+    return HStack({.spacing = 12},
+                  Image("quotes").font(Font::title2).foreground_style(ThemeColor::accent),
+                  If([=] { return loading() && quote().empty(); },
+                     Progress().frame({.width = 120}),
+                     Text([=] { return quote(); }).font(Font::title3)),
+                  Spacer(),
+                  Button(Image("arrow-clockwise"), load)
+                      .button_style(BorderedButtonStyle{})
+                      .disabled([=] { return loading(); })
+                      .accessibility_label("Another quote"))
+        .padding(16)
+        .background(ThemeColor::surface, RoundedRectangle(12));
+}
 
 // A wide photo with its own view for each phase, and a button that forgets every download.
 View Banner() {
@@ -52,12 +106,17 @@ View Feed() {
         ids.push_back(id);
     }
     return VStack({.alignment = HorizontalAlignment::leading, .spacing = 16},
+                  Quote(),
                   Banner(),
                   // Only the rows near the visible part are built, so only their images load.
-                  ScrollView(LazyVStack({.alignment = HorizontalAlignment::leading,
-                                         .spacing = 12,
-                                         .separators = StackSeparators{.inset = 134}},
-                                        ForEach(ids, [](int id) { return Photo(id); }))))
+                  ScrollView(LazyVStack({.spacing = 0, .separators = StackSeparators{.inset = 16}},
+                                        ForEach(ids,
+                                                [](int id) {
+                                                    return Photo(id)
+                                                        .padding(EdgeInsets::symmetric(16, 10))
+                                                        .frame({.max_width = infinity, .alignment = Alignment::leading});
+                                                }))
+                                 .background(ThemeColor::surface, RoundedRectangle(10))))
         .padding(20);
 }
 

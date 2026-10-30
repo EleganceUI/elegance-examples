@@ -38,7 +38,11 @@ View PopoverApp() {
                                       },
                                       {.placement = {.edge = FloatingEdge::trailing,
                                                      .alignment = FloatingAlignment::center,
-                                                     .spacing = 4}})),
+                                                     .spacing = 4},
+                                       // Grows out of the button's side and fades, both ways.
+                                       .motion = PopupMotion(Transition::opacity().combined(
+                                                                 Transition::scale(0.95f, Alignment::leading)),
+                                                             Animation::ease_out(0.15))})),
                   Text([=] { return std::format("editing: {}", editing() ? "yes" : "no"); })
                       .font(Font::caption)
                       .foreground_style(ThemeColor::secondary))

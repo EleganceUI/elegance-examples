@@ -26,6 +26,13 @@
       "name": "stb",
       "platform": "!windows & !osx"
     },
-    "sdl3"
+    "sdl3",
+    {
+      "name": "cpp-httplib",
+      "default-features": false,
+      "features": [
+        "openssl"
+      ]
+    }
   ]
 }

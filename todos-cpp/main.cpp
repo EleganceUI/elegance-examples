@@ -75,10 +75,13 @@ View TodoApp() {
                          Button("Add", add).disabled([=] { return draft().empty(); })),
                   If([=] { return todos().empty(); },
                      Text("Nothing left to do.").foreground_style(ThemeColor::secondary),
-                     ScrollView(LazyVStack({.spacing = 8, .separators = StackSeparators{}},
-                                           ForEach(todos, &Todo::id, [=](const Todo& todo) {
-                                               return TodoRow(todo.id, todo.title, todos);
-                                           })))),
+                     ScrollView(LazyVStack({.spacing = 0, .separators = StackSeparators{.inset = 16}},
+                                           ForEach(todos, &Todo::id,
+                                                   [=](const Todo& todo) {
+                                                       return TodoRow(todo.id, todo.title, todos)
+                                                           .padding(EdgeInsets::symmetric(16, 10));
+                                                   }))
+                                    .background(ThemeColor::surface, RoundedRectangle(10)))),
                   Text([=] { return std::format("{} left", remaining()); })
                       .font(Font::caption)
                       .foreground_style(ThemeColor::secondary))

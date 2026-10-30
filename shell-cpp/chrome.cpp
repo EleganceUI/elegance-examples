@@ -250,8 +250,8 @@ View DesktopIcon(const Desktop& d, AppKind app, std::string label, State<int> se
             return is_selected() ? ShapeStyle(Color::white.opacity(0.22f)) : ShapeStyle(Color::clear);
         }, RoundedRectangle(8))
         .content_shape(Rectangle())
-        .on_click([=] { selected = index; })
         .on_double_click([=] { d.open(app); })
+        .on_click([=] { selected = index; })
         .accessibility_element()
         .accessibility_action([=] { d.open(app); });
 }
@@ -695,14 +695,14 @@ View AppIcon(AppKind app, float size) {
 }
 
 View HoverButtonStyle::make_body(const ButtonConfiguration& button) const {
-    const std::function<bool()> selected = selected_;
+    const Prop<bool> selected = selected_;
     return button.label.background(
         [=](const EnvironmentValues& env) {
             const Color base = env.color(ThemeColor::primary);
             if (button.is_pressed()) {
                 return ShapeStyle(base.opacity(0.16f));
             }
-            if (selected && selected()) {
+            if (selected.get(env)) {
                 return ShapeStyle(base.opacity(0.12f));
             }
             return ShapeStyle(button.is_hovered() ? base.opacity(0.08f) : Color::clear);
